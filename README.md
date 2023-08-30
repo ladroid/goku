@@ -158,9 +158,9 @@ Example of building roguelike prototype can be found here -> https://github.com/
 
 ### 3. Visual effects
 
-1. Sparks -> 
-2. Fire -> 
-3. Rain -> 
+1. Sparks -> simply use a function
+2. Fire -> simply use a function
+3. Rain -> simply use a function
 
 ### 4. Side scrolling game
 
