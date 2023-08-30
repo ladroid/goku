@@ -192,7 +192,7 @@ Spanish version can be found [here](https://lados-organization.gitbook.io/goku/v
 
 ## Community
 
-[Discord](https://discord.gg/RDW8f2mv)
+[Discord](https://discord.gg/9TAMqdRyED)
 
 [GitHub Discussion](https://docs.github.com/en/discussions/quickstart)
 
