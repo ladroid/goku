@@ -141,6 +141,7 @@ impl State {
         }
     }
 
+    // not optimized, not efficient (need JSON file or something like that)
     fn translate(&self, text: &str) -> String {
         if self.general_settings.language == "Français" {
             match text {

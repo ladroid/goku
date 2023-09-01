@@ -1,5 +1,11 @@
 # goku
 
+![GitHub Workflow Status](https://img.shields.io/github/commit-activity/t/ladroid/goku)
+[![GitHub Repo stars](https://img.shields.io/github/stars/ladroid/goku)](https://github.com/ladroid/goku)
+[![Documentation](https://docs.rs/imgui-wgpu/badge.svg)](https://lados-organization.gitbook.io/goku/)
+![Repo Size](https://img.shields.io/github/repo-size/ladroid/goku)
+![License](https://img.shields.io/github/license/ladroid/goku)
+
 [ [English](README.md) | [Deutsch](docs/README.de.md) | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [日本語](docs/README.ja.md) ]
 
 
