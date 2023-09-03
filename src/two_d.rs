@@ -1,7 +1,7 @@
 extern crate sdl2;
 // extern  crate gl;
 
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
@@ -29,20 +29,23 @@ pub struct SpriteSheet<'a> {
     pub texture: Texture<'a>,
     pub frame_width: u32,
     pub frame_height: u32,
+    pub row: u32,
 }
 
 impl<'a> SpriteSheet<'a> {
-    pub fn new(texture: Texture<'a>, frame_width: u32, frame_height: u32) -> Self {
+    pub fn new(texture: Texture<'a>, frame_width: u32, frame_height: u32, row: u32) -> Self {
         Self {
             texture,
             frame_width,
             frame_height,
+            row,
         }
     }
 
     pub fn get_frame(&self, index: u32) -> Rect {
         let x = (index * self.frame_width) as i32;
-        Rect::new(x, 0, self.frame_width, self.frame_height)
+        let y = (self.row * self.frame_height) as i32;
+        Rect::new(x, y, self.frame_width, self.frame_height)
     }
 }
 
@@ -124,35 +127,50 @@ impl<'a> TextureManager<'a> {
 }
 
 pub struct TextureManagerAnim<'a> {
-    pub texture: Option<AnimatedTexture<'a>>,
+    pub animations: HashMap<String, AnimatedTexture<'a>>,
     pub texture_creator: &'a sdl2::render::TextureCreator<sdl2::video::WindowContext>,
+    pub current_animation: Option<String>,
 }
 
 #[allow(dead_code)]
 impl<'a> TextureManagerAnim<'a> {
     pub fn new(texture_creator: &'a sdl2::render::TextureCreator<sdl2::video::WindowContext>) -> Self {
         Self {
-            texture: None,
+            animations: HashMap::new(),
             texture_creator,
+            current_animation: None,
         }
     }
 
-    pub fn load_texture(&mut self, path: &Path, frame_width: u32, frame_height: u32, frame_delay: u32) -> Result<(), String> {
+    pub fn load_animation(&mut self, tag: &str, path: &Path, frame_width: u32, frame_height: u32, frame_delay: u32, row: u32) -> Result<(), String> {
         let texture = self.texture_creator.load_texture(path)?;
-        let sprite_sheet = SpriteSheet::new(texture, frame_width, frame_height);
-
+        let sprite_sheet = SpriteSheet::new(texture, frame_width, frame_height, row);
         let animated_texture = AnimatedTexture::new(sprite_sheet, frame_delay);
-        self.texture = Some(animated_texture);
+        self.animations.insert(tag.to_string(), animated_texture);
+
+        if self.current_animation.is_none() {
+            self.current_animation = Some(tag.to_string());
+        }
 
         Ok(())
     }
 
+    pub fn set_animation(&mut self, tag: &str) {
+        if self.animations.contains_key(tag) {
+            self.current_animation = Some(tag.to_string());
+        }
+    }
+
     pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, dest: sdl2::rect::Rect) -> Result<(), String> {
-        if let Some(texture) = &mut self.texture {
-            texture.render(canvas, dest)?;
-            Ok(())
+        if let Some(tag) = &self.current_animation {
+            if let Some(texture) = self.animations.get_mut(tag) {
+                texture.render(canvas, dest)?;
+                Ok(())
+            } else {
+                Err("Texture not loaded for the current animation tag".to_owned())
+            }
         } else {
-            Err("Texture not loaded".to_owned())
+            Err("No animation set".to_owned())
         }
     }
 }
@@ -179,14 +197,24 @@ impl<'a> GameObject<'a> {
         }
     }
 
-    pub fn load_texture(&mut self, path: &Path, frame_width: u32, frame_height: u32, frame_delay: u32) -> Result<(), String> {
-        self.texture_manager_anim.load_texture(path, frame_width, frame_height, frame_delay)
+    pub fn load_texture(&mut self, tag:&str, path: &Path, frame_width: u32, frame_height: u32, frame_delay: u32, row: u32) -> Result<(), String> {
+        self.texture_manager_anim.load_animation(tag, path, frame_width, frame_height, frame_delay, row)
     }
 
     pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, scale: u32) -> Result<(), String> {
-        let dest = sdl2::rect::Rect::new(self.position.x, self.position.y, self.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_width * scale, self.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_height * scale);
-        self.texture_manager_anim.render_texture(canvas, dest)
+        if let Some(tag) = &self.texture_manager_anim.current_animation {
+            if let Some(animated_texture) = self.texture_manager_anim.animations.get(tag) {
+                let sprite_sheet = &animated_texture.sprite_sheet;
+                let dest = sdl2::rect::Rect::new(self.position.x, self.position.y, sprite_sheet.frame_width * scale, sprite_sheet.frame_height * scale);
+                self.texture_manager_anim.render_texture(canvas, dest)
+            } else {
+                Err("Texture not loaded for the current animation tag".to_owned())
+            }
+        } else {
+            Err("No animation set".to_owned())
+        }
     }
+    
 
     pub fn update_position(&mut self, event: sdl2::event::Event, colliders: &Vec<Rect>, delta_time: f32) {
         let mut new_position = self.position;

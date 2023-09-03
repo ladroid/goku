@@ -196,6 +196,19 @@ German version can be found [here](https://lados-organization.gitbook.io/goku/v/
 
 Spanish version can be found [here](https://lados-organization.gitbook.io/goku/v/goku-game-engine_es/)
 
+## How to Contribute
+
+### Submitting Issues
+Use the Issue Tracker to submit bug reports and feature/enhancement requests. Before submitting a new issue, ensure that there is no similar open issue.
+
+### Manual Testing
+Anyone manually testing the code and reporting bugs or suggestions for enhancements in the Issue Tracker are very welcome!
+
+### Submitting Pull Requests
+Patches/fixes are accepted in form of pull requests (PRs). Make sure the issue the pull request addresses is open in the Issue Tracker.
+
+Submitted pull request is deemed to have agreed to publish under Apache 2.0 License.
+
 ## Community
 
 [Discord](https://discord.gg/9TAMqdRyED)
