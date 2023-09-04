@@ -1379,6 +1379,11 @@ impl Timer {
     pub fn sleep(&self, duration: std::time::Duration) {
         std::thread::sleep(duration);
     }
+
+    // Returns the elapsed time in milliseconds since the Timer started
+    pub fn elapsed_ms(&self) -> u32 {
+        self.get_time().as_millis() as u32
+    }
 }
 
 #[allow(dead_code)]
