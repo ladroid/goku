@@ -54,6 +54,7 @@ pub struct AnimatedTexture<'a> {
     pub frame_delay: u32,
     pub current_frame: u32,
     pub last_frame_time: u32,
+    pub flip: sdl2_sys::SDL_RendererFlip,
 }
 
 impl<'a> AnimatedTexture<'a> {
@@ -63,10 +64,11 @@ impl<'a> AnimatedTexture<'a> {
             frame_delay,
             current_frame: 0,
             last_frame_time: 0,
+            flip: sdl2_sys::SDL_RendererFlip::SDL_FLIP_NONE, // Default to no flip
         }
     }
 
-    pub fn render(&mut self, canvas: &mut Canvas<sdl2::video::Window>, dest: Rect) -> Result<(), String> {
+    pub fn render(&mut self, canvas: &mut Canvas<sdl2::video::Window>, dest: Rect, flip: u32) -> Result<(), String> {
         let now = unsafe {
             sdl2_sys::SDL_GetTicks()
         };
@@ -77,7 +79,8 @@ impl<'a> AnimatedTexture<'a> {
         }
 
         let src = self.sprite_sheet.get_frame(self.current_frame);
-        canvas.copy(&self.sprite_sheet.texture, src, dest)?;
+        canvas.copy_ex(&self.sprite_sheet.texture, Some(src), Some(dest), 0.0, None, flip == sdl2_sys::SDL_RendererFlip::SDL_FLIP_HORIZONTAL as u32, false)?;
+        // canvas.copy(&self.sprite_sheet.texture, src, dest)?;
 
         Ok(())
     }
@@ -161,10 +164,10 @@ impl<'a> TextureManagerAnim<'a> {
         }
     }
 
-    pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, dest: sdl2::rect::Rect) -> Result<(), String> {
+    pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, dest: sdl2::rect::Rect, flip: u32) -> Result<(), String> {
         if let Some(tag) = &self.current_animation {
             if let Some(texture) = self.animations.get_mut(tag) {
-                texture.render(canvas, dest)?;
+                texture.render(canvas, dest, flip)?;
                 Ok(())
             } else {
                 Err("Texture not loaded for the current animation tag".to_owned())
@@ -201,12 +204,18 @@ impl<'a> GameObject<'a> {
         self.texture_manager_anim.load_animation(tag, path, frame_width, frame_height, frame_delay, row)
     }
 
-    pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, scale: u32) -> Result<(), String> {
+    pub fn render_texture(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, scale: u32, flip_horizontal: bool) -> Result<(), String> {
         if let Some(tag) = &self.texture_manager_anim.current_animation {
             if let Some(animated_texture) = self.texture_manager_anim.animations.get(tag) {
                 let sprite_sheet = &animated_texture.sprite_sheet;
                 let dest = sdl2::rect::Rect::new(self.position.x, self.position.y, sprite_sheet.frame_width * scale, sprite_sheet.frame_height * scale);
-                self.texture_manager_anim.render_texture(canvas, dest)
+                
+                let flip = if flip_horizontal {
+                    sdl2_sys::SDL_RendererFlip::SDL_FLIP_HORIZONTAL as u32
+                } else {
+                    sdl2_sys::SDL_RendererFlip::SDL_FLIP_NONE as u32
+                };
+                self.texture_manager_anim.render_texture(canvas, dest, flip)
             } else {
                 Err("Texture not loaded for the current animation tag".to_owned())
             }
