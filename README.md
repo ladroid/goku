@@ -69,6 +69,11 @@ The documentation is located here -> [Gitbook](https://lados-organization.gitboo
 
     * Multiple image file formats: JPG and PNG
 
+    * Lighting:
+        - Point Light
+        - Spot Light
+        - Ambient Light Filter
+
 * Audio
     - Play
     - Loop
@@ -99,6 +104,8 @@ The documentation is located here -> [Gitbook](https://lados-organization.gitboo
 
 * Dialogue System
 
+* Profiler
+
 * Supports several languages:
     - German
     - Spanish
@@ -112,7 +119,9 @@ The documentation is located here -> [Gitbook](https://lados-organization.gitboo
 
 ## How to run
 
-command to run: `cargo run`
+1. ```git clone https://github.com/ladroid/goku.git```
+2. extract everything
+3. command to run: `cargo run`
 
 **Important!!!** Currently GUI is still under the development, I'm trying to combine imgui and sdl2 together but need sometime to make it full compatible. Thus, if someone wants to use it is possible to add component `Scene` and write there a script. If you know how to combine them will be really great!
 
@@ -124,11 +133,13 @@ command to run: `cargo run`
 
 ## TODO (is prioritised)
 
+* make finally a separate .rs file instead of one big 
+
 * make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and imgui)
 
 * improve physics
 
-* add/improve UI system (make possible to add image for buttons and rounded buttons)
+* add/improve UI system (make possible to add image for buttons)
 
 * improve lights and shadows
 
@@ -136,7 +147,7 @@ command to run: `cargo run`
 
 * tabs
 
-* profiler
+* profiler improve
 
 * add/improve particle system
 
@@ -178,7 +189,7 @@ Example of building platformer prototype can be found here -> https://github.com
 
 ### 6. Set simple states for enemy(chasing/following)
 
-Example of building platformer prototype can be found here -> https://github.com/ladroid
+Example of building platformer prototype can be found [here](examples/enemy_behaviour.txt)
 
 ## Japanese ver.
 

@@ -1,3 +1,5 @@
+mod two_d;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut window = two_d::Window::new("My Game", 800, 600)?;
 
@@ -34,6 +36,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut camera = two_d::Camera::new(nalgebra::Vector2::new(0, 0), nalgebra::Vector2::new(800, 600));
 
     let mut flip_horizontal = false; // Create a boolean flag to keep track of the flip state
+
+    let mut light_texture = texture_creator.create_texture_streaming(None, 800, 600)?;
+    light_texture.set_blend_mode(sdl2::render::BlendMode::Add);
+    let light = two_d::AmbientFilter::new(0.6);  // 1.0 means full intensity
 
     'mainloop: loop {
         current_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
@@ -106,6 +112,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
             }
         }
+        // Clear the light texture with an ambient color (e.g., dark blue)
+        light_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+            for y in 0..600 {
+                for x in 0..800 {
+                    let offset = y * pitch + x * 4;
+                    buffer[offset] = 60;       // Blue
+                    buffer[offset + 1] = 0;   // Green
+                    buffer[offset + 2] = 100;   // Red
+                    buffer[offset + 3] = 255;             // Alpha
+                }
+            }
+        }).unwrap();
+
+        // Render each light onto the light texture
+        light.render(&mut window.canvas, &mut light_texture);
+
+        // Set blend mode to Mod for blending the light texture onto the main scene
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
+        window.canvas.copy(&light_texture, None, None)?;
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
 
         window.canvas.present();
     }

@@ -225,21 +225,33 @@ impl<'a> GameObject<'a> {
     }
     
 
-    pub fn update_position(&mut self, event: sdl2::event::Event, colliders: &Vec<Rect>, delta_time: f32) {
+    pub fn update_position(&mut self, event: GEvent, colliders: &Vec<Rect>, delta_time: f32) {
         let mut new_position = self.position;
 
         match event {
-            sdl2::event::Event::KeyDown { keycode: Some(keycode), .. } => {
-                match keycode {
-                    sdl2::keyboard::Keycode::Left => { new_position.x -= 1; self.rigid_body.apply_force(Vector2::new(-new_position.x as f32, 0.0)); },
-                    sdl2::keyboard::Keycode::Right => { new_position.x += 1; self.rigid_body.apply_force(Vector2::new(new_position.x as f32, 0.0)); },
-                    sdl2::keyboard::Keycode::Up => { new_position.y -= 1; self.rigid_body.apply_force(Vector2::new(0.0, -new_position.y as f32)); },
-                    sdl2::keyboard::Keycode::Down => { new_position.y += 1; self.rigid_body.apply_force(Vector2::new(0.0, new_position.y as f32)); },
+            GEvent::KeyDown(key_event) => {
+                match key_event {
+                    KeyEvent::Left => { 
+                        new_position.x -= 1; 
+                        self.rigid_body.apply_force(Vector2::new(-new_position.x as f32, 0.0));
+                    },
+                    KeyEvent::Right => { 
+                        new_position.x += 1; 
+                        self.rigid_body.apply_force(Vector2::new(new_position.x as f32, 0.0));
+                    },
+                    KeyEvent::Up => { 
+                        new_position.y -= 1; 
+                        self.rigid_body.apply_force(Vector2::new(0.0, -new_position.y as f32));
+                    },
+                    KeyEvent::Down => { 
+                        new_position.y += 1; 
+                        self.rigid_body.apply_force(Vector2::new(0.0, new_position.y as f32));
+                    },
                     _ => {},
-                    }
+                }
             },
             _ => {},
-        }
+        }        
 
         self.rigid_body.update(delta_time);
         new_position += Vector2::new(self.rigid_body.velocity.x as i32, self.rigid_body.velocity.y as i32);
@@ -408,30 +420,104 @@ impl Camera {
 
 
 // light & shadow
-pub struct PointLight<'a> {
-    texture_manager: TextureManager<'a>,
-    position: Vector2<i32>,
+pub struct PointLight {
+    pub position: nalgebra::Vector2<f32>,
+    pub radius: f32,
+    pub intensity: f32,
+    pub color: sdl2::pixels::Color,
 }
 
 #[allow(dead_code)]
-impl<'a> PointLight<'a> {
-    pub fn new(texture_manager: TextureManager<'a>, position: Vector2<i32>) -> Self {
-        Self {
-            texture_manager,
+impl PointLight {
+    pub fn new(position: nalgebra::Vector2<f32>, radius: f32, intensity: f32, color: sdl2::pixels::Color) -> Self {
+        PointLight {
             position,
+            radius,
+            intensity,
+            color,
         }
     }
 
-    pub fn load_texture(&mut self, path: &Path) -> Result<(), String> {
-        self.texture_manager.load_texture(path)
-    }
-
-    pub fn render_texture(&self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) -> Result<(), String> {
-        let dest = sdl2::rect::Rect::new(self.position.x, self.position.y, 128, 128);
-        self.texture_manager.render_texture(canvas, dest)
+    // Render the point light onto a texture (you might need to adapt this)
+    pub fn render(&self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, light_spot_texture: &mut sdl2::render::Texture) {
+        let alpha_value = (self.intensity * 255.0).clamp(0.0, 255.0) as u8;
+        
+        // Set the alpha and color modulation of the light texture
+        light_spot_texture.set_alpha_mod(alpha_value);
+        light_spot_texture.set_color_mod(self.color.r, self.color.g, self.color.b);
+        
+        let dst_rect = sdl2::rect::Rect::new(
+            self.position.x as i32 - self.radius as i32,
+            self.position.y as i32 - self.radius as i32,
+            (self.radius * 2.0) as u32,
+            (self.radius * 2.0) as u32,
+        );
+        
+        canvas.copy(light_spot_texture, None, Some(dst_rect)).unwrap();
     }
 }
 
+pub struct SpotLight {
+    pub position: nalgebra::Vector2<f32>,
+    pub direction: nalgebra::Vector2<f32>,  // Direction the light is facing.
+    pub cutoff_angle: f32,  // Angle of the cone (in degrees).
+    pub distance: f32,      // Maximum distance the light can reach.
+    pub intensity: f32,
+    pub color: sdl2::pixels::Color,
+}
+
+#[allow(dead_code)]
+impl SpotLight {
+    pub fn new(position: nalgebra::Vector2<f32>, direction: nalgebra::Vector2<f32>, cutoff_angle: f32, distance: f32, intensity: f32, color: sdl2::pixels::Color) -> Self {
+        SpotLight {
+            position,
+            direction,
+            cutoff_angle,
+            distance,
+            intensity,
+            color,
+        }
+    }
+
+    // Render the spotlight onto a texture (you might need to adapt this)
+    pub fn render(&self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, spotlight_texture: &mut sdl2::render::Texture) {
+        let alpha_value = (self.intensity * 255.0).clamp(0.0, 255.0) as u8;
+        
+        // Set the alpha and color modulation of the light texture
+        spotlight_texture.set_alpha_mod(alpha_value);
+        spotlight_texture.set_color_mod(self.color.r, self.color.g, self.color.b);
+        
+        let dst_rect = sdl2::rect::Rect::new(
+            self.position.x as i32 - (self.distance / 2.0) as i32,
+            self.position.y as i32 - (self.distance / 2.0) as i32,
+            self.distance as u32,
+            self.distance as u32,
+        );
+        
+        // You might want to rotate the texture to match the direction of the spotlight
+        let angle = self.direction.y.atan2(self.direction.x).to_degrees() - 90.0;  // Convert to degrees and adjust for the spotlight texture orientation.
+        
+        canvas.copy_ex(spotlight_texture, None, Some(dst_rect), angle as f64, None, false, false).unwrap();
+    }
+}
+
+pub struct AmbientFilter {
+    pub intensity: f32,
+}
+#[allow(dead_code)]
+impl AmbientFilter {
+    pub fn new(intensity: f32) -> Self {
+        AmbientFilter { intensity }
+    }
+
+    pub fn render(&self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, light_texture: &mut sdl2::render::Texture) {
+        let alpha_value = (self.intensity * 255.0).clamp(0.0, 255.0) as u8;
+        light_texture.set_alpha_mod(alpha_value);
+        
+        // Cover the entire scene with the ambient light
+        canvas.copy(light_texture, None, None).unwrap();
+    }
+}
 
 // physics
     // Collider  +
@@ -588,8 +674,6 @@ pub fn spawn_particles_rain(particles: &mut Vec<Particle>, screen_width: u32, co
         particles.push(Particle::new(x, y, x_vel, y_vel, life, color));
     }
 }
-
-// profiler
 
 // shapes
 const BLOCK_SIZE: u32 = 20;
@@ -781,6 +865,8 @@ pub struct Button<'a> {
     text_box: std::rc::Rc<TextBox<'a>>,
     color: sdl2::pixels::Color,
     bg_rect: sdl2::rect::Rect, // Add this field
+    pub center: (i32, i32),
+    pub radius: i32,
     on_click_callback: Box<dyn Fn() + 'a>, // Add this field
 }
 
@@ -846,19 +932,49 @@ impl<'a> Serialize for Button<'a> {
 }
 
 impl<'a> Button<'a> {
-    pub fn new(text_box: std::rc::Rc<TextBox<'a>>, color: sdl2::pixels::Color, bg_rect: sdl2::rect::Rect, on_click_callback: Box<dyn Fn() + 'a>,) -> Self {
-        Self { text_box, color, bg_rect, on_click_callback, }
-    }
-
-    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
-        canvas.set_draw_color(self.color);
-        canvas.fill_rect(self.bg_rect)?;
-        canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 0)); // Reset the draw color
-        self.text_box.render(canvas)
+    pub fn new(text_box: std::rc::Rc<TextBox<'a>>, color: sdl2::pixels::Color, bg_rect: sdl2::rect::Rect, center: (i32, i32), radius: i32,on_click_callback: Box<dyn Fn() + 'a>,) -> Self {
+        Self { text_box, color, bg_rect, center, radius, on_click_callback, }
     }
 
     pub fn is_pressed(&self, x: i32, y: i32) -> bool {
         self.bg_rect.contains_point(sdl2::rect::Point::new(x, y))
+    }
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+        canvas.set_draw_color(self.color);
+
+        // Draw the main rectangular body of the button
+        canvas.fill_rect(sdl2::rect::Rect::new(
+            self.bg_rect.x() + self.radius,
+            self.bg_rect.y(),
+            self.bg_rect.width() - 2 * self.radius as u32,
+            self.bg_rect.height(),
+        ))?;
+        canvas.fill_rect(sdl2::rect::Rect::new(
+            self.bg_rect.x(),
+            self.bg_rect.y() + self.radius,
+            self.bg_rect.width(),
+            self.bg_rect.height() - 2 * self.radius as u32,
+        ))?;
+
+        // Draw the rounded corners using filled circles
+        self.draw_filled_circle(canvas, self.bg_rect.x() + self.radius, self.bg_rect.y() + self.radius, self.radius)?; // top-left corner
+        self.draw_filled_circle(canvas, self.bg_rect.x() + self.bg_rect.width() as i32 - self.radius, self.bg_rect.y() + self.radius, self.radius)?; // top-right corner
+        self.draw_filled_circle(canvas, self.bg_rect.x() + self.radius, self.bg_rect.y() + self.bg_rect.height() as i32 - self.radius, self.radius)?; // bottom-left corner
+        self.draw_filled_circle(canvas, self.bg_rect.x() + self.bg_rect.width() as i32 - self.radius, self.bg_rect.y() + self.bg_rect.height() as i32 - self.radius, self.radius)?; // bottom-right corner
+        
+        canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 0)); // Reset the draw color
+        self.text_box.render(canvas)
+    }
+
+    fn draw_filled_circle(&self, canvas: &mut Canvas<sdl2::video::Window>, cx: i32, cy: i32, r: i32) -> Result<(), String> {
+        for y in -r..=r {
+            for x in -r..=r {
+                if x * x + y * y <= r * r {
+                    canvas.draw_point(sdl2::rect::Point::new(cx + x, cy + y))?;
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn on_click(&self) {
@@ -939,13 +1055,22 @@ impl<'a> TextBox<'a> {
         Self { text, font, rect }
     }
 
+    // pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+    //     let surface = self.font.render(&self.text).blended(sdl2::pixels::Color::RGBA(0, 0, 0, 255)).map_err(|e| e.to_string())?;
+    //     let texture_creator = canvas.texture_creator();
+    //     let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+    //     canvas.copy(&texture, None, self.rect)?;
+    //     Ok(())
+    // }
+
     pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
         let surface = self.font.render(&self.text).blended(sdl2::pixels::Color::RGBA(0, 0, 0, 255)).map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
         canvas.copy(&texture, None, self.rect)?;
+    
         Ok(())
-    }
+    }    
 }
 
 #[allow(dead_code)]
@@ -965,6 +1090,8 @@ impl<'a> Checkbox<'a> {
             text_box,
             color,
             bg_rect,
+            (0, 0),
+            0,
             Box::new(|| {
                 println!("Checkbox clicked!");
             }),
@@ -1124,7 +1251,7 @@ pub enum BehaviourTreeResult {
 }
 #[allow(dead_code)]
 impl<'a> BehaviourTreeNode<'a> {
-    fn tick(&self) -> BehaviourTreeResult {
+    pub fn tick(&self) -> BehaviourTreeResult {
         match self {
             BehaviourTreeNode::Action(action) => action(),
             BehaviourTreeNode::Selector(nodes) => {
@@ -1395,8 +1522,230 @@ impl Timer {
     }
 }
 
+pub struct DialogueTextBox<'a> {
+    pub speaker: Option<String>,
+    pub text: String,
+    pub font: std::sync::Arc<sdl2::ttf::Font<'a, 'static>>,
+    pub rect: sdl2::rect::Rect,
+}
+
+impl<'a> Serialize for DialogueTextBox<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("TextBox", 3)?;
+        state.serialize_field("text", &self.text)?;
+        state.serialize_field("rect", &RectWrapper(self.rect))?;
+        // We cannot serialize the font, so we will skip it.
+        state.end()
+    }
+}
+
 #[allow(dead_code)]
-struct DialogueOption {
+impl<'a> DialogueTextBox<'a> {
+    pub fn new(speaker: Option<String>, text: String, font: std::sync::Arc<sdl2::ttf::Font<'a, 'static>>, rect: sdl2::rect::Rect) -> Self {
+        Self { speaker, text, font, rect }
+    }
+
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+        // Draw dialogue background
+        canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 128));  // semi-transparent black
+        canvas.fill_rect(self.rect)?;
+        
+        if let Some(ref speaker) = self.speaker {
+            let surface = self.font.render(&speaker).blended(sdl2::pixels::Color::RGBA(255, 255, 255, 0)).map_err(|e| e.to_string())?;
+            let texture_creator = canvas.texture_creator();
+            let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+            canvas.copy(&texture, None, sdl2::rect::Rect::new(self.rect.x, self.rect.y - 20, 120, 20))?; 
+            // Offset by 20 pixels, adjust accordingly
+        }
+    
+        let surface = self.font.render(&self.text).blended(sdl2::pixels::Color::RGBA(255, 255, 255, 255)).map_err(|e| e.to_string())?;
+        let texture_creator = canvas.texture_creator();
+        let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+        canvas.copy(&texture, None, self.rect)?;
+    
+        Ok(())
+    }    
+}
+
+#[allow(dead_code)]
+struct DialogueOption<'a> {
     pub text: String,
     pub action: fn(),
+    pub rect: sdl2::rect::Rect,  // New field
+    pub font: std::sync::Arc<sdl2::ttf::Font<'a, 'static>>,  // New field
+}
+
+// struct DialogueOption {
+//     pub text: String,
+//     pub action: fn(),
+// }
+
+pub struct DialogueBox<'a> {
+    text_boxes: Vec<std::rc::Rc<DialogueTextBox<'a>>>,
+    options: Vec<DialogueOption<'a>>,
+    pub is_active: bool,
+}
+
+#[allow(dead_code)]
+impl<'a> DialogueBox<'a> {
+    pub fn new() -> Self {
+        Self {
+            text_boxes: Vec::new(),
+            options: Vec::new(),
+            is_active: false,
+        }
+    }
+
+    pub fn activate(&mut self) {
+        self.is_active = true;
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
+    }
+
+    pub fn add_text(&mut self, text_box: std::rc::Rc<DialogueTextBox<'a>>) {
+        self.text_boxes.push(text_box);
+    }
+
+    fn add_option(&mut self, option: DialogueOption<'a>) {
+        self.options.push(option);
+    }
+
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+        if !self.is_active {
+            return Ok(());
+        }
+    
+        // Render each text box
+        for text_box in &self.text_boxes {
+            text_box.render(canvas)?;
+        }
+    
+        let mut option_y_offset = 90;  // Start rendering options 90 pixels below the text
+        for option in &self.options {
+            let surface = option.font.render(&option.text).blended(sdl2::pixels::Color::RGBA(255, 0, 0, 255)).map_err(|e| e.to_string())?;
+            let texture_creator = canvas.texture_creator();
+            let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+            canvas.copy(&texture, None, sdl2::rect::Rect::new(self.text_boxes[0].rect.x + 10, self.text_boxes[0].rect.y + option_y_offset, self.text_boxes[0].rect.width() - 20, 20))?;
+            option_y_offset += 25;  // Adjust this value to change the space between options
+        }
+        
+        Ok(())
+    }
+}
+
+// profiler
+pub struct Profiler {
+    pub frame_counter: u32,
+    pub last_fps_time: u32,
+    pub last_memory_print_time: u32,
+    pub last_cpu_print_time: u32,
+}
+
+#[allow(dead_code)]
+impl Profiler {
+    pub fn new() -> Self {
+        Self {
+            frame_counter: 0,
+            last_fps_time: unsafe { sdl2::sys::SDL_GetTicks() },
+            last_memory_print_time: unsafe { sdl2::sys::SDL_GetTicks() },
+            last_cpu_print_time: unsafe { sdl2::sys::SDL_GetTicks() },
+        }
+    }
+
+    pub fn update(&mut self, current_frame_time: u32) {
+        self.frame_counter += 1;
+
+        if current_frame_time - self.last_fps_time >= 1000 {  // Every second
+            println!("FPS: {}", self.frame_counter);
+            self.frame_counter = 0;
+            self.last_fps_time = current_frame_time;
+        }
+
+        if current_frame_time - self.last_memory_print_time >= 5000 {  // Every 5 seconds
+            // Note: The memory fetching here is a placeholder. In a real-world scenario, you'd use platform-specific methods or tools.
+            println!("Memory Usage: {} MB", "PLACEHOLDER");
+            self.last_memory_print_time = current_frame_time;
+        }
+
+        if current_frame_time - self.last_cpu_print_time >= 10000 {  // Every 10 seconds
+            // Note: The CPU fetching here is a placeholder. 
+            println!("CPU Usage: {}%", "PLACEHOLDER");
+            self.last_cpu_print_time = current_frame_time;
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub enum KeyEvent {
+    Left,
+    Right,
+    Up,
+    Down,
+    Escape,
+    Other(Keycode),
+}
+
+// #[allow(dead_code)]
+// pub struct MouseButtonEvent {
+//     pub button: sdl2::mouse::MouseButton,
+//     pub x: i32,
+//     pub y: i32,
+// }
+
+// #[allow(dead_code)]
+// pub enum MouseButton {
+//     Left,
+//     Right,
+//     Middle,
+//     // ... other buttons as necessary ...
+// }
+
+#[allow(dead_code)]
+pub enum GEvent {
+    Quit,
+    KeyDown(KeyEvent),
+    KeyUp(KeyEvent),
+    // MouseButtonDown(MouseButtonEvent),
+}
+
+#[allow(dead_code)]
+pub fn from_sdl_event(event: sdl2::event::Event) -> Option<GEvent> {
+    match event {
+        sdl2::event::Event::Quit { .. } => Some(GEvent::Quit),
+        sdl2::event::Event::KeyDown { keycode: Some(keycode), .. } => {
+            let key = match keycode {
+                Keycode::Left => KeyEvent::Left,
+                Keycode::Right => KeyEvent::Right,
+                Keycode::Up => KeyEvent::Up,
+                Keycode::Down => KeyEvent::Down,
+                Keycode::Escape => KeyEvent::Escape,
+                other => KeyEvent::Other(other),
+            };
+            Some(GEvent::KeyDown(key))
+        }
+        sdl2::event::Event::KeyUp { keycode: Some(keycode), .. } => {
+            let key = match keycode {
+                Keycode::Left => KeyEvent::Left,
+                Keycode::Right => KeyEvent::Right,
+                Keycode::Up => KeyEvent::Up,
+                Keycode::Down => KeyEvent::Down,
+                Keycode::Escape => KeyEvent::Escape,
+                other => KeyEvent::Other(other),
+            };
+            Some(GEvent::KeyUp(key))
+        }
+        // sdl2::event::Event::MouseButtonDown { x, y, mouse_btn, .. } => match mouse_btn {
+        //     sdl2::mouse::MouseButton::Left => Some(GEvent::MouseButtonDown(MouseButtonEvent { button: sdl2::mouse::MouseButton::Left, x, y })),
+        //     sdl2::mouse::MouseButton::Right => Some(GEvent::MouseButtonDown(MouseButtonEvent { button: sdl2::mouse::MouseButton::Right, x, y })),
+        //     sdl2::mouse::MouseButton::Middle => Some(GEvent::MouseButtonDown(MouseButtonEvent { button: sdl2::mouse::MouseButton::Middle, x, y })),
+        //     // ... other mouse button mappings ...
+        //     _ => None,
+        // },
+        _ => None,
+    }
 }

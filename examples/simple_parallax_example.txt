@@ -1,3 +1,5 @@
+mod two_d;
+
 pub fn test_parallax() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();

@@ -1,3 +1,5 @@
+mod two_d;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut window = two_d::Window::new("My Game", 800, 600)?;
 
@@ -35,45 +37,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut flip_horizontal = false; // Create a boolean flag to keep track of the flip state
 
+    // layer + button
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+    let mut ui_layer = two_d::Layer::new();
+    // Load a font:
+    let font_path = std::path::Path::new("ARIALUNI.TTF");
+    let font_size = 24;
+    let font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
+    let text_box = std::rc::Rc::new(two_d::TextBox::new("Hello, world".to_lowercase(), font, sdl2::rect::Rect::new(50, 20, 120, 50)));
+    let button = std::rc::Rc::new(two_d::Button::new(text_box.clone(), 
+    sdl2::pixels::Color::RGB(123, 23, 56), 
+    sdl2::rect::Rect::new(50, 20, 120, 50), (0, 0), 10, 
+    Box::new(|| {
+        println!("Button pressed!");
+    }),));
+    ui_layer.add_button(button.clone());
+
     'mainloop: loop {
         current_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
         delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
 
         for event in input_handler.poll_events() {
-            if let Some(event) = two_d::from_sdl_event(event) {
-                match event {
-                    two_d::GEvent::Quit | two_d::GEvent::KeyDown(two_d::KeyEvent::Escape) => break 'mainloop,
-                    two_d::GEvent::KeyDown(ref key_event) => {
-                        match key_event {
-                            two_d::KeyEvent::Left => {
-                                flip_horizontal = true;
-                                player.texture_manager_anim.set_animation("walk_right");
-                            },
-                            two_d::KeyEvent::Right => {
-                                flip_horizontal = false;
-                                player.texture_manager_anim.set_animation("walk_right");
-                            },
-                            two_d::KeyEvent::Up => {
-                                flip_horizontal = false;
-                                player.texture_manager_anim.set_animation("walk_up");
-                            }, 
-                            two_d::KeyEvent::Down => {
-                                flip_horizontal = false;
-                                player.texture_manager_anim.set_animation("walk_down");
-                            },
-                            _ => {},
-                        }
-                        player.update_position(event, &tile_map.colliders, delta_time);
-                    },
-                    two_d::GEvent::KeyUp(key_event) => {
-                        match key_event {
-                            two_d::KeyEvent::Left | two_d::KeyEvent::Right | two_d::KeyEvent::Up | two_d::KeyEvent::Down => {
-                                player.texture_manager_anim.set_animation("idle");
-                            },
-                            _ => {},
-                        }
-                    }
+            match event {
+                sdl2::event::Event::MouseButtonDown { x, y, .. } => {
+                    ui_layer.handle_mouse_click(x, y);
                 }
+                sdl2::event::Event::Quit { .. }
+                | sdl2::event::Event::KeyDown {
+                    keycode: Option::Some(sdl2::keyboard::Keycode::Escape),
+                    ..
+                } => break 'mainloop,
+                sdl2::event::Event::KeyDown { keycode: Some(keycode), .. } => {
+                    // Set the player's animation based on the key press
+                    match keycode {
+                        sdl2::keyboard::Keycode::Left  => {
+                            flip_horizontal = true;
+                            player.texture_manager_anim.set_animation("walk_right");
+                            player.update_position(event, &tile_map.colliders, delta_time);
+                        },
+                        sdl2::keyboard::Keycode::Right => {
+                            flip_horizontal = false;
+                            player.texture_manager_anim.set_animation("walk_right");
+                            player.update_position(event, &tile_map.colliders, delta_time);
+                        },
+                        sdl2::keyboard::Keycode::Up => {
+                            flip_horizontal = false;
+                            player.texture_manager_anim.set_animation("walk_up");
+                            player.update_position(event, &tile_map.colliders, delta_time);
+                        }, 
+                        sdl2::keyboard::Keycode::Down => {
+                            flip_horizontal = false;
+                            player.texture_manager_anim.set_animation("walk_down");
+                            player.update_position(event, &tile_map.colliders, delta_time);
+                        },
+                        _ => {},
+                    }
+                },
+                // Handle other events and the default idle animation
+                sdl2::event::Event::KeyUp { keycode: Some(keycode), .. } => {
+                    match keycode {
+                        sdl2::keyboard::Keycode::Left | sdl2::keyboard::Keycode::Right | sdl2::keyboard::Keycode::Up | sdl2::keyboard::Keycode::Down => {
+                            player.texture_manager_anim.set_animation("idle");
+                        },
+                        _ => {},
+                    }
+                },
+                _ => {},
             }
         }
 
@@ -106,6 +135,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
             }
         }
+
+        ui_layer.render(&mut window.canvas)?;
 
         window.canvas.present();
     }

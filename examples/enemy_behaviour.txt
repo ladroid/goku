@@ -1,3 +1,5 @@
+mod two_d;
+
 pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
     let mut window = Window::new("My Game", 800, 600)?;
 
