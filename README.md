@@ -49,6 +49,86 @@ goku is focused, lightweight and has few dependencies (mostly SDL2). It provides
 
 The documentation is located here -> [Gitbook](https://lados-organization.gitbook.io/goku/)
 
+## Requirements
+### Linux
+Install these through your favourite package management tool, or via
+http://www.libsdl.org/
+
+**Ubuntu example:**
+> sudo apt-get install libsdl2-dev
+
+**Fedora example:**
+> sudo dnf install SDL2-devel
+
+**Arch example:**
+(Arch doesn't have separate regular and development packages, everything goes together.)  
+> sudo pacman -S sdl2
+
+You might also need a C compiler (`gcc`).
+
+#### Static linking in Linux
+
+You can choose to link SDL2 statically instead of dynamically with the `static-link` feature.
+On Linux, you will need to additionally do one of the following:
+* use the `bundled` feature
+* use the feature `use-pkgconfig` so that rustc knows where to look for your SDL2 libraries and its dependencies for static linking. This is required because there is no built-in way to find the resources needed to link statically SDL2 from your system
+* install development libraries with [vcpkg][vcpkg]. Instructions to generate a static binary on Linux and other operating systems using vcpkg are [here][cargo-vcpkg-usage]
+
+### macOS
+#### Homebrew
+On macOS, it's a good idea to install these via
+[homebrew][homebrew].
+
+```
+brew install sdl2
+```
+
+In recent versions of Homebrew, the installed libraries are usually linked into `$(brew --prefix)/lib`.
+If you are running an older version, the symlink for SDL might reside in `/usr/local/lib`.
+
+To make linking libraries installed by Homebrew easier, do the following for your respective shell.
+
+Add this line to your `~/.zshenv` or `~/.bash_profile` depending on whether you use ZSH or Bash.
+```
+export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
+```
+
+### Windows (MSVC)
+
+1. Download MSVC development libraries from http://www.libsdl.org/ (SDL2-devel-2.0.x-VC.zip).
+2. Unpack SDL2-devel-2.0.x-VC.zip to a folder of your choosing (You can delete it afterwards).
+3. Copy all lib files from
+    > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
+
+    to (for Rust 1.6 and above)
+    > C:\Program Files\Rust\\**lib**\rustlib\x86_64-pc-windows-msvc\lib
+
+    or to (for Rust versions 1.5 and below)
+    > C:\Program Files\Rust\\**bin**\rustlib\x86_64-pc-windows-msvc\lib
+
+    or to your library folder of choice, and ensure you have a system environment variable of
+    > LIB = C:\your\rust\library\folder
+
+    For Rustup users, this folder will be in
+    > C:\Users\\{Your Username}\\.rustup\toolchains\\{current toolchain}\lib\rustlib\\{current toolchain}\lib
+
+  Where current toolchain is likely `stable-x86_64-pc-windows-msvc`.
+
+4. Copy SDL2.dll from
+    > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
+
+    into your cargo project, right next to your Cargo.toml.
+
+ 5. When you're shipping your game make sure to copy SDL2.dll to the same directory that your compiled exe is in, otherwise the game won't launch.
+
+#### Static linking with MSVC
+
+The MSVC development libraries provided by http://libsdl.org/ don't include a static library. This means that if you want to use the `static-link` feature with the windows-msvc toolchain, you have to do one of
+
+- build an SDL2 static library yourself and copy it to your toolchain's `lib` directory; or
+- also enable the `bundled` feature, which will build a static library for you; or
+- use a static SDL2 library from vcpkg as described below.
+
 ## Features
 
 * Graphics:
