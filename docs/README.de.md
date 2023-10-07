@@ -9,13 +9,13 @@
 [ [Englisch](../README.md) | [Deutsch](README.de.md) | [Spanisch](README.es.md) | [Französisch](README.fr.md) | [日本語](README.ja.md) ]
 
 
-goku ist eine 2D-Spieleentwicklungsanwendung für Rust (in Zukunft auch für die Integration von 3D-Spielen). Geschrieben ausschließlich in Rust.
+goku ist eine 2D-Spieleentwicklungsanwendung für Rust (in Zukunft Integration mit 3D-Spielen). Geschrieben rein in Rust.
 
 Es ist verfügbar für **macOS**, **Windows** und **Linux**.
 
-Basierend auf SDL2 (derzeit).
+Derzeit basiert es auf SDL2.
 
-goku ist fokussiert, leichtgewichtig und hat nur wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
+goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
 
 * ein Fenster und eine Hauptschleife
 
@@ -27,7 +27,7 @@ goku ist fokussiert, leichtgewichtig und hat nur wenige Abhängigkeiten (haupts�
 
 * GUI-Schnittstelle für die Entwicklung
 
-<ins>Von goku derzeit verwendete Drittbibliotheken:</ins>
+<ins>Drittanbieter-Bibliotheken, die derzeit von goku verwendet werden:</ins>
 
 * SDL2
 
@@ -39,23 +39,107 @@ goku ist fokussiert, leichtgewichtig und hat nur wenige Abhängigkeiten (haupts�
 
 * rfd
 
-* walkdir
+* glow
 
-## Verwendung
+* webbrowser
+
+## Anwendung
+
+**WICHTIG!!!**
 
 Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.gitbook.io/goku/)
 
-## Funktionen
+## Anforderungen
+### Linux
+Installieren Sie diese über Ihr bevorzugtes Paketverwaltungstool oder über
+http://www.libsdl.org/
 
-* Grafiken:
+**Ubuntu-Beispiel:**
+> sudo apt-get install libsdl2-dev
+
+**Fedora-Beispiel:**
+> sudo dnf install SDL2-devel
+
+**Arch-Beispiel:**
+(Arch hat keine separaten regulären und Entwicklungs-Pakete, alles geht zusammen.)
+> sudo pacman -S sdl2
+
+Sie benötigen möglicherweise auch einen C-Compiler (`gcc`).
+
+#### Statische Verlinkung in Linux
+
+Sie können wählen, SDL2 statisch anstatt dynamisch mit dem Feature `static-link` zu verlinken.
+Unter Linux müssen Sie zusätzlich eine der folgenden Aktionen ausführen:
+* das Feature `bundled` verwenden
+* das Feature `use-pkgconfig` verwenden, damit rustc weiß, wo es nach Ihren SDL2-Bibliotheken und deren Abhängigkeiten für die statische Verlinkung suchen soll. Dies ist erforderlich, da es keine integrierte Möglichkeit gibt, die benötigten Ressourcen zu finden, um SDL2 statisch von Ihrem System zu verlinken
+* Entwicklungsbibliotheken mit [vcpkg][vcpkg] installieren. Anweisungen zur Erstellung einer statischen Binärdatei unter Linux und anderen Betriebssystemen mit vcpkg finden Sie [hier][cargo-vcpkg-usage]
+
+### macOS
+#### Homebrew
+Auf macOS ist es eine gute Idee, diese über
+[homebrew][homebrew] zu installieren.
+
+```
+brew install sdl2
+```
+
+In neueren Versionen von Homebrew werden die installierten Bibliotheken normalerweise in `$(brew --prefix)/lib` verlinkt.
+Wenn Sie eine ältere Version verwenden, befindet sich der Symlink für SDL möglicherweise in `/usr/local/lib`.
+
+Um das Verlinken von Bibliotheken, die von Homebrew installiert wurden, zu erleichtern, führen Sie die folgenden Schritte für Ihre jeweilige Shell aus.
+
+Fügen Sie diese Zeile Ihrer `~/.zshenv` oder `~/.bash_profile` hinzu, je nachdem, ob Sie ZSH oder Bash verwenden.
+```
+export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
+```
+
+### Windows (MSVC)
+
+1. Laden Sie die MSVC-Entwicklungsbibliotheken von http://www.libsdl.org/ herunter (SDL2-devel-2.0.x-VC.zip).
+2. Entpacken Sie SDL2-devel-2.0.x-VC.zip in einen Ordner Ihrer Wahl (Sie können ihn danach löschen).
+3. Kopieren Sie alle lib-Dateien von
+    > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
+
+    nach (für Rust 1.6 und höher)
+    > C:\Program Files\Rust\\**lib**\rustlib\x86_64-pc-windows-msvc\lib
+
+    oder nach (für Rust-Versionen 1.5 und niedriger)
+    > C:\Program Files\Rust\\**bin**\rustlib\x86_64-pc-windows-msvc\lib
+
+    oder in Ihren Bibliotheksordner Ihrer Wahl, und stellen Sie sicher, dass Sie eine Systemumgebungsvariable haben
+    > LIB = C:\your\rust\library\folder
+
+    Für Rustup-Benutzer wird dieser Ordner sich in
+    > C:\Users\\{Your Username}\\.rustup\toolchains\\{current toolchain}\lib\rustlib\\{current toolchain}\lib
+
+    befinden, wobei die aktuelle Toolchain wahrscheinlich `stable-x86_64-pc-windows-msvc` ist.
+
+4. Kopieren Sie SDL2.dll von
+    > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
+
+    in Ihr Cargo-Projekt, direkt neben Ihre Cargo.toml.
+
+ 5. Wenn Sie Ihr Spiel versenden, stellen Sie sicher, dass Sie SDL2.dll in dasselbe Verzeichnis kopieren, in dem sich Ihre kompilierte exe befindet, sonst wird das Spiel nicht starten.
+
+#### Statische Verlinkung mit MSVC
+
+Die von http://libsdl.org/ bereitgestellten MSVC-Entwicklungsbibliotheken enthalten keine statische Bibliothek. Das bedeutet, wenn Sie das Feature `static-link` mit der windows-msvc-Toolchain verwenden möchten, müssen Sie eine der folgenden Aktionen ausführen:
+
+- Eine statische SDL2-Bibliothek selbst erstellen und in das `lib`-Verzeichnis Ihrer Toolchain kopieren; oder
+- Auch das Feature `bundled` aktivieren, das für Sie eine statische Bibliothek erstellt; oder
+- eine statische SDL2-Bibliothek von vcpkg verwenden, wie unten beschrieben.
+
+## Merkmale
+
+* Grafik:
     * ein Fenster und eine Hauptschleife
 
-    * 2D-Grafiken und Text
-        - Button
-        - Schieberegler
+    * 2D-Grafiken und Text 
+        - Button 
+        - Schieberegler 
         - Kontrollkästchen
         - Textfeld
-        - Schriftarten (nur im ttf-Format)
+        - Schriftarten (nur ttf-Format)
         - Partikelsystem (Funken)
         - Parallax-Hintergrund
 
@@ -63,28 +147,35 @@ Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.git
         * integrierter Texteditor
         * Debug-Konsole
 
-    * Unterstützte Bildformate: JPG und PNG
+    * Mehrere Bildformate: JPG und PNG
+
+    * Beleuchtung:
+        - Punktlicht
+        - Spotlicht
+        - Umgebungslichtfilter
 
 * Audio
-    - Wiedergabe
+    - Abspielen
     - Schleife
     - Pause
     - Fortsetzen
-    - Unterstützte Audioformate: OGG, MP3, FLAC, MOD
+    - Mehrere Audioformate: OGG, MP3, FLAC, MOD
 
-* Eingabeverarbeitung:
-    * Tastatur-, Maus- und Gamepad-Eingabe
+* Eingabehandler:
+    * Tastatur-, Maus- und Gamepad-E
+
+ingabe
 
 * Mathematische Typen:
-    * Vector2, Vector3, Vector4
+    * Vektor2, Vektor3, Vektor4
     * Matrix33, Matrix34, Matrix43, Matrix44
 
 * Physik:
     * Kollisionen
-    * Starrkörper (derzeit kein kinematischer Starrkörper)
+    * Starrkörper (derzeit haben wir keinen kinematischen Starrkörper)
 
 * Szene:
-    * Flexibles JSON-Dateiformat: Kann entweder eine gesamte Szene oder einzelne Meshes beschreiben.
+    * Flexibles JSON-Dateiformat: Kann entweder eine ganze Szene oder einzelne Meshes beschreiben.
 
 * Animation
 
@@ -95,7 +186,9 @@ Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.git
 
 * Dialogsystem
 
-* Unterstützte Sprachen:
+* Profiler
+
+* Unterstützt mehrere Sprachen:
     - Deutsch
     - Spanisch
     - Japanisch
@@ -103,104 +196,117 @@ Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.git
 
 * Unterstützte Plattformen:
     - Windows / Mac / Linux
-    - Web (WASM noch nicht vollständig integriert) (zusätzliche Verweise [Emscripten](https://puddleofcode.com/story/definitive-guide-to-rust-sdl2-and-emscriptem/) / [SDL-WASM](https://gitlab.com/ThibaultLemaire/rust-sdl-canvas-wasm) / [Web](https://github.com/koute/cargo-web))
+    - Web (WASM noch nicht vollständig integriert) (zusätzliche Referenzen [Emscripte](https://puddleofcode.com/story/definitive-guide-to-rust-sdl2-and-emscriptem/) / [SDL-WASM](https://gitlab.com/ThibaultLemaire/rust-sdl-canvas-wasm) / [Web](https://github.com/koute/cargo-web) )
     - Android in der Zukunft
 
 ## Ausführung
 
-Befehl zur Ausführung: `cargo run`
+1. ```git clone https://github.com/ladroid/goku.git```
+2. Alles extrahieren
+3. Befehl zum Ausführen: `cargo run`
 
-**Wichtig!!!** Die GUI befindet sich derzeit noch in der Entwicklung. Ich versuche, imgui und sdl2 miteinander zu kombinieren, aber es wird noch einige Zeit dauern, bis es vollständig kompatibel ist. Wenn also jemand die Anwendung nutzen möchte, kann er das Komponente `Scene` hinzufügen und dort ein Skript schreiben. Wenn Sie wissen, wie sie kombiniert werden können, wäre das wirklich großartig!
+**Wichtig!!!** Derzeit befindet sich die GUI noch in der Entwicklung, ich versuche, imgui und sdl2 zusammenzubringen, benötige aber einige Zeit, um sie vollständig kompatibel zu machen. Wenn also jemand es verwenden möchte, ist es möglich, die Komponente `Scene` hinzuzufügen und dort ein Skript zu schreiben. Wenn Sie wissen, wie man sie kombiniert, wäre das wirklich großartig!
 
-## Kompilierung für das Web
+## Erstellung für das Web
 
-1. Drücken Sie "Tools"
-2. Drücken Sie "Build"
-3. Führen Sie diesen Befehl im Verzeichnis aus, in dem er erstellt wurde: `cargo web start wasm32-unknown-emscripten` oder `cargo web build --target wasm32-unknown-emscripten`
+1. Drücken Sie auf Tools
+2. Drücken Sie auf Build
+3. Führen Sie diesen Befehl im Verzeichnis aus, in dem es erstellt wurde: `cargo web start wasm32-unknown-emscripten` oder `cargo web build --target wasm32-unknown-emscripten`
 
-## TODO
+## TODO (ist priorisiert)
 
-* Verbessern der GUI des Motors sowie des Texteditors
+* schließlich eine separate .rs-Datei anstelle einer großen erstellen
 
-* Zeichnen einfacher Formen (Kreis, Rechteck, Dreieck, usw.)
+* einen Anzeigebereich anstelle der aktuellen Lösung mit Canvas erstellen (wahrscheinlich benötigen Sie ein separates Fenster innerhalb der App mit Kombination von sdl2 und imgui)
 
-* Registerkarten
+* Physik verbessern
 
-* Profiler
+* UI-System hinzufügen/verbessern (Bild für Schaltflächen hinzufügen ermöglichen)
 
-* Ansichtsfenster (wahrscheinlich eine Kombination aus sdl2 und egui)
+* Lichter und Schatten verbessern
 
-* Physikmaterial
+* einfache Formen zeichnen (Kreis, Rechteck, Dreieck usw.)
 
-* Möglichkeit zur Erstellung von 3D-Spielen (Betrachtung von Vulkan)
+* Tabs
 
-* Verbessern von Lichtern und Schatten
+* Profiler verbessern
 
-* Hinzufügen/Verbessern des Partikelsystems
+* Partikelsystem hinzufügen/verbessern
 
-* Verbessern der Physik (Hinzufügen eines kinematischen Starrkörpers)
+* die GUI des Motors sowie den Texteditor verbessern (wahrscheinlich anstelle des integrierten Texteditors eine Integration mit VSCode oder einer anderen IDE vornehmen)
 
-* Hinzufügen/Verbessern des UI-Systems
+* Blueprints hinzufügen (wahrscheinlich imgui node graph https://github.com/benmkw/imnodes-rs)
 
-* Voxel
+* Spiele für mobile Geräte iOS, Android erstellen
 
-* Hinzufügen von Bauplänen (wahrscheinlich mit imgui Node-Graph https://github.com/benmkw/imnodes-rs)
+* Spiele für Konsolen (PS4-5), Xbox, Nintendo Switch erstellen
 
-* Spieleentwicklung für mobile iOS, Android
+* physikalisches Material
 
-* Spieleentwicklung für Konsolen (PS4-5), Xbox, Nintendo Switch
-
-* Integration mit C++ (wahrscheinlich etwas wie Bindgen)
+* Integration mit C++ (wahrscheinlich so etwas wie ein bindgen)
 
 ## Beispiele
 
 ### 1. Tetris
 
-Ein Beispiel für den Aufbau eines Tetris-Spiels finden Sie hier -> https://github.com/ladroid
+Ein Beispiel für den Bau eines Tetris-Spiels finden Sie [hier](examples/tetris_game_example.txt)
 
 ### 2. Roguelike-Prototyp (TODO)
 
-Ein Beispiel für den Aufbau eines Roguelike-Prototyps finden Sie hier -> https://github.com/ladroid
+Ein Beispiel für den Bau eines Roguelike-Prototyps finden Sie hier -> https://github.com/ladroid
 
 ### 3. Visuelle Effekte
 
-1. Funken -> 
-2. Feuer -> 
-3. Regen -> 
+1. Funken -> einfach eine Funktion verwenden
+2. Feuer -> einfach eine Funktion verwenden
+3. Regen -> einfach eine Funktion verwenden
 
-### 4. Seitwärts scrollendes Spiel
+### 4. Seitlich scrollendes Spiel
 
-Ein Beispiel für den Aufbau eines seitwärts scrollenden Prototyps finden Sie hier -> https://github.com/ladroid
+Ein Beispiel für den Bau eines seitlich scrollenden Prototyps finden Sie [hier](examples/simple_parallax_example.txt)
 
-### 5. Plattformer
+### 5. Platformer
 
-Ein Beispiel für den Aufbau eines Plattformer-Prototyps finden Sie hier -> https://github.com/ladroid
+Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie hier -> https://github.com/ladroid
 
-### 6. Einfache Zustände für den Gegner festlegen (Verfolgung/Folgen)
+### 6. Einfache Zustände für Feinde festlegen (Verfolgung/Folgen)
 
-Ein Beispiel für das Festlegen einfacher Zustände für einen Gegner (Verfolgung/Folgen) finden Sie hier -> https://github.com/ladroid
+Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie [hier](examples/enemy_behaviour.txt)
 
 ## Japanische Version
 
-Die japanische Version finden Sie hier ->
+Die japanische Version finden Sie [hier](https://lados-organization.gitbook.io/goku/v/goku-game-engine_jp/)
 
 ## Französische Version
 
-Die französische Version finden Sie hier ->
+Die französische Version finden Sie [hier](https://lados-organization.gitbook.io/goku/v/goku-game-engine_fr/)
 
 ## Deutsche Version
 
-Die deutsche Version finden Sie hier ->
+Die deutsche Version finden Sie [hier](https://lados-organization.gitbook.io/goku/v/goku-game-engine_de/)
 
 ## Spanische Version
 
-Die spanische Version finden Sie hier ->
+Die spanische Version finden Sie [hier](https://lados-organization.gitbook.io/goku/v/goku-game-engine_es/)
+
+## Beitrag leisten
+
+### Fehler melden
+Verwenden Sie den Issue Tracker, um Fehlerberichte und Anfragen für Funktionen/Verbesserungen einzureichen. Stellen Sie vor der Einreichung eines neuen Issues sicher, dass es kein ähnliches offenes Issue gibt.
+
+### Manuelle Tests
+Jeder, der den Code manuell testet und Fehler meldet oder Vorschläge für Verbesserungen im Issue Tracker macht, ist sehr willkommen!
+
+### Pull-Anfragen einreichen
+Patches/Fixes werden in Form von Pull-Anfragen (PRs) akzeptiert. Stellen Sie sicher, dass das Problem, das die Pull-Anfrage behandelt, im Issue Tracker offen ist.
+
+Die eingereichte Pull-Anfrage wird als Zustimmung zur Veröffentlichung unter der Apache 2.0-Lizenz betrachtet.
 
 ## Community
 
-[Discord](https://discord.gg/RDW8f2mv)
+[Discord](https://discord.gg/9TAMqdRyED)
 
 [GitHub-Diskussion](https://docs.github.com/en/discussions/quickstart)
 
 ## Lizenz
-goku steht unter der Apache-Lizenz Version 2.0. Siehe [LIZENZ](https://pages.github.com/).
+goku ist unter der Apache-Lizenz Version 2.0 lizenziert. Siehe [LIZENZ](https://pages.github.com/) Datei.
