@@ -1,3 +1,14 @@
+0.1.1 [Quasar Quest]
+1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)
+2. PointLight was improved completely can be used very easily(before there were some problems with PointLight)
+3. AmbientLightFIlter was added to change the color gradient for the game(new feature)
+4. Examples were improved as well as more examples were added
+5. Spot Light(new feature)
+6. Rounded /not rounded buttons(there was such a decision to make either rounded or not)
+7. Simple profiler(new feature)
+8. GEvent for keyboards is used now (on top of sdl2::event::Event)
+9. Dialogue System improvement (before there was only possibility to add text but it was impoossible to render and draw)
+
 0.1.0 [Orbit Overture]
 1. Graphics UI 
     - Buttons
