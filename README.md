@@ -249,9 +249,9 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 Example of building tetris game can be found [here](examples/tetris_game_example.txt)
 
-### 2. Roguelike prototype (TODO)
+### 2. Roguelike prototype (In progress)
 
-Example of building roguelike prototype can be found here -> https://github.com/ladroid
+Example of building roguelike prototype can be found [here](examples/roguelike/game_example.rs)
 
 ### 3. Visual effects
 
