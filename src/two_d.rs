@@ -335,6 +335,29 @@ impl<'a> Tile<'a> {
     pub fn set_texture_grid(&mut self, texture_grid: TextureGrid<'a>) {
         self.texture_grid = Some(texture_grid);
     }
+
+    pub fn from_generated_map(
+        generated_map: Vec<Vec<u32>>,
+        textures: Vec<&'a TextureManager<'a>>,
+        texture_grid: Option<TextureGrid<'a>>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut colliders: Vec<Rect> = Vec::new();
+
+        for (y, row) in generated_map.iter().enumerate() {
+            for (x, &tile_type) in row.iter().enumerate() {
+                if tile_type == 2 {
+                    let collider = Rect::new((x * 82) as i32, (y * 82) as i32, 82, 82);
+                    colliders.push(collider);
+                }
+            }
+        }
+        Ok(Self {
+            textures,
+            tile_map: generated_map,
+            colliders,
+            texture_grid,
+        })
+    }
 }
 
 // camera
