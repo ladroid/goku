@@ -8,3 +8,9 @@ Randomly generated roguelike game
 ## Key features:
 * Randomly generated dungeon.
 * Point Light.
+
+## Source code
+Source code can be shown [here](/game_example.rs)
+
+## Assets
+Character was taken from [here](https://totuslotus.itch.io/characterpack)
