@@ -7,3 +7,4 @@ Randomly generated roguelike game
 
 ## Key features:
 * Randomly generated dungeon.
+* Point Light.

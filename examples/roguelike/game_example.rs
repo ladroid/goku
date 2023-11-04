@@ -1,5 +1,6 @@
 mod two_d;
 use rand::Rng;
+use sdl2::image::LoadTexture;
 
 fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> Vec<Vec<u32>> {
     let mut rng = rand::thread_rng();
@@ -68,6 +69,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut camera = two_d::Camera::new(nalgebra::Vector2::new(0, 0), nalgebra::Vector2::new(800, 600));
 
     let mut flip_horizontal = false;
+
+    let mut light_spot_texture = texture_creator.load_texture("point_light.png")?;
+    let light = two_d::PointLight::new(
+        nalgebra::Vector2::new(400.0, 300.0),
+        100.0,
+        0.6,  // Intensity: 0.0 (off) to 1.0 (full intensity)
+        sdl2::pixels::Color::RGB(255, 255, 255)  // White color for pure light. You can change this!
+    );
+    let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
+    darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
 
     // Key press state tracking
     let mut left_key_pressed = false;
@@ -166,6 +177,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
             }
         }
+
+        // Render each light onto the light texture
+        window.canvas.with_texture_canvas(&mut darkness_texture, |canvas| {
+            // Clear the texture with a semi-transparent black for darkness
+            canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 150));
+            canvas.clear();
+            
+            // Render each light onto this dark texture
+            light.render(canvas, &mut light_spot_texture);
+        })?;
+
+        // Set blend mode to Mod for blending the light texture onto the main scene
+        // Now, set the blend mode and render the darkness_texture over the main canvas to achieve the lighting effect
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
+        window.canvas.copy(&darkness_texture, None, None)?;
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
 
         window.canvas.present();
     }
