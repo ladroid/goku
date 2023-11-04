@@ -1,10 +1,29 @@
 mod two_d;
 use rand::Rng;
+use rand::seq::SliceRandom; // For random selection from slices
+#[allow(unused_imports)]
 use sdl2::image::LoadTexture;
 
-fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> Vec<Vec<u32>> {
+struct Enemy<'a> {
+    position: nalgebra::Vector2<i32>,
+    texture_manager: two_d::TextureManagerAnim<'a>,
+}
+
+// A function to check if the given position collides with any enemy.
+fn check_collision_with_enemies(enemies: &[Enemy], new_position: (usize, usize)) -> bool {
+    enemies.iter().any(|enemy| {
+        let enemy_grid_position = (
+            (enemy.position.x / 82) as usize,
+            (enemy.position.y / 82) as usize,
+        );
+        new_position == enemy_grid_position
+    })
+}
+
+fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> (Vec<Vec<u32>>, Vec<(usize, usize)>) {
     let mut rng = rand::thread_rng();
     let mut grid = vec![vec![0; width]; height];  // Initialize grid with empty spaces
+    let mut spawn_points = Vec::new();
     
     // Set the perimeter walls
     for x in 0..width {
@@ -28,7 +47,17 @@ fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_
         }
     }
 
-    grid
+    // Collect valid spawn points
+    for y in 1..(height - 1) {
+        for x in 1..(width - 1) {
+            if (x, y) != player_pos && (x, y) != door_pos && grid[y][x] == 0 {
+                spawn_points.push((x, y));
+            }
+        }
+    }
+
+    // grid
+    (grid, spawn_points)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,7 +87,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut obstacle = two_d::TextureManager::new(&texture_creator);
     obstacle.load_texture(&std::path::Path::new("stone.png"))?;
 
-    let generated_map = generate_level(10, 10, player_grid_position, (1, 8));
+    let (generated_map, mut spawn_points) = generate_level(10, 10, player_grid_position, (1, 8));
+    let mut rng = rand::thread_rng();
+    let mut enemies = Vec::new();
+
+    for _ in 0..5 {
+        if let Some(spawn_point) = spawn_points.choose(&mut rng).cloned() {
+            let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
+            // Load enemy textures here. This should be adapted to your actual texture loading logic.
+            // For example:
+            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("player_anim.png"), 16, 18, 150, 0)?;
+
+            let enemy = Enemy {
+                position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
+                texture_manager: enemy_texture_manager,
+            };
+            enemies.push(enemy);
+            spawn_points.retain(|&p| p != spawn_point); // Remove the used spawn point
+        }
+    }
 
     let tile_map = two_d::Tile::from_generated_map(
         generated_map,
@@ -94,39 +141,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     two_d::GEvent::Quit | two_d::GEvent::KeyDown(two_d::KeyEvent::Escape) => break 'mainloop,
                     two_d::GEvent::KeyDown(ref key_event) => {
                         match key_event {
-                            two_d::KeyEvent::Left if !left_key_pressed => {
-                                if player_grid_position.0 > 0 && tile_map.tile_map[player_grid_position.1][player_grid_position.0 - 1] == 0 {
-                                    left_key_pressed = true;
-                                    player_grid_position.0 -= 1;
-                                    flip_horizontal = true;
-                                    player.texture_manager_anim.set_animation("walk_right");
-                                }
-                            },
-                            two_d::KeyEvent::Right if !right_key_pressed => {
-                                if player_grid_position.0 < tile_map.tile_map[0].len() - 1 && tile_map.tile_map[player_grid_position.1][player_grid_position.0 + 1] == 0 {
-                                    right_key_pressed = true;
-                                    player_grid_position.0 += 1;
-                                    flip_horizontal = false;
-                                    player.texture_manager_anim.set_animation("walk_right");
-                                }
-                            },
-                            two_d::KeyEvent::Up if !up_key_pressed => {
-                                if player_grid_position.1 > 0 && tile_map.tile_map[player_grid_position.1 - 1][player_grid_position.0] == 0 {
-                                    up_key_pressed = true;
-                                    player_grid_position.1 -= 1;
-                                    flip_horizontal = false;
-                                    player.texture_manager_anim.set_animation("walk_up");
-                                }
-                            },
-                            two_d::KeyEvent::Down if !down_key_pressed => {
-                                if player_grid_position.1 < tile_map.tile_map.len() - 1 && tile_map.tile_map[player_grid_position.1 + 1][player_grid_position.0] == 0 {
-                                    down_key_pressed = true;
-                                    player_grid_position.1 += 1;
-                                    flip_horizontal = false;
-                                    player.texture_manager_anim.set_animation("walk_down");
-                                }
-                            },
-                            _ => {},
+                            // Check collisions for left movement
+                        two_d::KeyEvent::Left if !left_key_pressed => {
+                            let new_position = (player_grid_position.0 - 1, player_grid_position.1);
+                            if player_grid_position.0 > 0
+                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && !check_collision_with_enemies(&enemies, new_position)
+                            {
+                                left_key_pressed = true;
+                                player_grid_position = new_position;
+                                flip_horizontal = true;
+                                player.texture_manager_anim.set_animation("walk_right");
+                            }
+                        },
+
+                        // Check collisions for right movement
+                        two_d::KeyEvent::Right if !right_key_pressed => {
+                            let new_position = (player_grid_position.0 + 1, player_grid_position.1);
+                            if player_grid_position.0 < tile_map.tile_map[0].len() - 1
+                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && !check_collision_with_enemies(&enemies, new_position)
+                            {
+                                right_key_pressed = true;
+                                player_grid_position = new_position;
+                                flip_horizontal = false;
+                                player.texture_manager_anim.set_animation("walk_right");
+                            }
+                        },
+
+                        // Check collisions for up movement
+                        two_d::KeyEvent::Up if !up_key_pressed => {
+                            let new_position = (player_grid_position.0, player_grid_position.1 - 1);
+                            if player_grid_position.1 > 0
+                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && !check_collision_with_enemies(&enemies, new_position)
+                            {
+                                up_key_pressed = true;
+                                player_grid_position = new_position;
+                                player.texture_manager_anim.set_animation("walk_up");
+                            }
+                        },
+
+                        // Check collisions for down movement
+                        two_d::KeyEvent::Down if !down_key_pressed => {
+                            let new_position = (player_grid_position.0, player_grid_position.1 + 1);
+                            if player_grid_position.1 < tile_map.tile_map.len() - 1
+                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && !check_collision_with_enemies(&enemies, new_position)
+                            {
+                                down_key_pressed = true;
+                                player_grid_position = new_position;
+                                player.texture_manager_anim.set_animation("walk_down");
+                            }
+                        },
+                        _ => {},
                         }
                     },
                     two_d::GEvent::KeyUp(ref key_event) => {
@@ -175,6 +243,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
                 let transformed_player_rect = camera.transform_rect(player_rect);
                 player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
+            }
+        }
+
+        // Render enemies inside the game loop
+        for enemy in &mut enemies {
+            // Render the enemy using its texture and position
+            // Adapt the below code to match how your engine handles enemy animations and rendering
+            if let Some(current_animation_tag) = &enemy.texture_manager.current_animation {
+                if let Some(animated_texture) = enemy.texture_manager.animations.get(current_animation_tag) {
+                    let player_rect = sdl2::rect::Rect::new(
+                        enemy.position.x as i32, 
+                        enemy.position.y as i32, 
+                        animated_texture.sprite_sheet.frame_width * 2, 
+                        animated_texture.sprite_sheet.frame_height * 2
+                    );
+                    let transformed_player_rect = camera.transform_rect(player_rect);
+                    enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
+                }
             }
         }
 
