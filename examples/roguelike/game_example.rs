@@ -6,7 +6,10 @@ use sdl2::image::LoadTexture;
 
 struct Enemy<'a> {
     position: nalgebra::Vector2<i32>,
+    grid_position: (i32, i32), // Add a grid_position to keep track of the enemy's position in grid terms
     texture_manager: two_d::TextureManagerAnim<'a>,
+    speed: i32, // Speed of the enemy
+    last_move: std::time::Instant, // Timestamp of the last move
 }
 
 // A function to check if the given position collides with any enemy.
@@ -18,6 +21,16 @@ fn check_collision_with_enemies(enemies: &[Enemy], new_position: (usize, usize))
         );
         new_position == enemy_grid_position
     })
+}
+
+// Helper function to check if the new position of an enemy would collide with any other enemy
+fn enemy_collision_check(enemies: &[Enemy], current_index: usize, new_position: (i32, i32)) -> bool {
+    for (index, enemy) in enemies.iter().enumerate() {
+        if index != current_index && enemy.grid_position == new_position {
+            return true;
+        }
+    }
+    false
 }
 
 fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> (Vec<Vec<u32>>, Vec<(usize, usize)>) {
@@ -60,6 +73,49 @@ fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_
     (grid, spawn_points)
 }
 
+// Add this function to calculate the next move for an enemy to move towards the player
+fn move_towards_player(
+    player_pos: (i32, i32),
+    enemy_pos: (i32, i32),
+    enemies: &[Enemy], // Pass the slice of all enemies
+    current_index: usize, // The index of the current enemy being moved
+    tile_map: &two_d::Tile,
+    speed: i32,
+    last_move: &mut std::time::Instant,
+    player_moved: bool,
+) -> (i32, i32) {
+    let mut direction = (0, 0);
+
+    if player_moved {
+        // Only move if enough time has passed since the last move
+        if last_move.elapsed() >= core::time::Duration::from_millis((1000 / speed) as u64) {
+            // Calculate direction in the X-axis
+            if player_pos.0 < enemy_pos.0 && tile_map.tile_map[enemy_pos.1 as usize][(enemy_pos.0 - 1) as usize] == 0 {
+                direction.0 = -1; // Move left
+            } else if player_pos.0 > enemy_pos.0 && tile_map.tile_map[enemy_pos.1 as usize][(enemy_pos.0 + 1) as usize] == 0 {
+                direction.0 = 1; // Move right
+            }
+
+            // Calculate direction in the Y-axis
+            if player_pos.1 < enemy_pos.1 && tile_map.tile_map[(enemy_pos.1 - 1) as usize][enemy_pos.0 as usize] == 0 {
+                direction.1 = -1; // Move up
+            } else if player_pos.1 > enemy_pos.1 && tile_map.tile_map[(enemy_pos.1 + 1) as usize][enemy_pos.0 as usize] == 0 {
+                direction.1 = 1; // Move down
+            }
+
+            *last_move = std::time::Instant::now(); // Reset the last move timer
+        }
+    }
+
+    // Only update the direction if the new position does not result in a collision with another enemy
+    if player_moved && !enemy_collision_check(enemies, current_index, (enemy_pos.0 + direction.0, enemy_pos.1 + direction.1)) {
+        *last_move = std::time::Instant::now(); // Reset the last move timer
+        direction
+    } else {
+        (0, 0) // No movement if collision would occur
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut window = two_d::Window::new("My Game", 800, 600)?;
 
@@ -100,7 +156,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let enemy = Enemy {
                 position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
+                grid_position: (spawn_point.0 as i32, spawn_point.1 as i32), // Initialize grid_position
                 texture_manager: enemy_texture_manager,
+                speed: 3, // The speed at which the enemy moves, you can adjust this as needed
+                last_move: std::time::Instant::now(), // Set the last move to the current time
             };
             enemies.push(enemy);
             spawn_points.retain(|&p| p != spawn_point); // Remove the used spawn point
@@ -132,8 +191,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut right_key_pressed = false;
     let mut up_key_pressed = false;
     let mut down_key_pressed = false;
+    let mut player_moved = false;
 
     'mainloop: loop {
+        player_moved = false;
 
         for event in input_handler.poll_events() {
             if let Some(event) = two_d::from_sdl_event(event) {
@@ -152,6 +213,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 player_grid_position = new_position;
                                 flip_horizontal = true;
                                 player.texture_manager_anim.set_animation("walk_right");
+                                player_moved = true;
                             }
                         },
 
@@ -166,6 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 player_grid_position = new_position;
                                 flip_horizontal = false;
                                 player.texture_manager_anim.set_animation("walk_right");
+                                player_moved = true;
                             }
                         },
 
@@ -179,6 +242,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 up_key_pressed = true;
                                 player_grid_position = new_position;
                                 player.texture_manager_anim.set_animation("walk_up");
+                                player_moved = true;
                             }
                         },
 
@@ -192,6 +256,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 down_key_pressed = true;
                                 player_grid_position = new_position;
                                 player.texture_manager_anim.set_animation("walk_down");
+                                player_moved = true;
                             }
                         },
                         _ => {},
@@ -205,6 +270,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 up_key_pressed = false;
                                 down_key_pressed = false;
                                 player.texture_manager_anim.set_animation("idle");
+                                player_moved = false;
                             },
                             _ => {},
                         }
@@ -249,7 +315,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Render enemies inside the game loop
         for enemy in &mut enemies {
             // Render the enemy using its texture and position
-            // Adapt the below code to match how your engine handles enemy animations and rendering
             if let Some(current_animation_tag) = &enemy.texture_manager.current_animation {
                 if let Some(animated_texture) = enemy.texture_manager.animations.get(current_animation_tag) {
                     let player_rect = sdl2::rect::Rect::new(
@@ -262,6 +327,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
                 }
             }
+        }
+
+        // Call the move_towards_player function for each enemy
+        if player_moved {
+            // In the game loop, when updating enemy positions
+            for index in 0..enemies.len() {
+                let player_position = (player_grid_position.0 as i32, player_grid_position.1 as i32);
+                let enemy_position = (enemies[index].grid_position.0, enemies[index].grid_position.1);
+                
+                // Temporarily clone the enemy's last_move to pass it to the function
+                let mut last_move_clone = enemies[index].last_move.clone();
+
+                let direction = move_towards_player(
+                    player_position,
+                    enemy_position,
+                    &enemies, // This is safe because we are not mutating enemies here
+                    index,
+                    &tile_map,
+                    enemies[index].speed,
+                    &mut last_move_clone, // Use the clone instead of the original
+                    player_moved
+                );
+                
+                // If move_towards_player determined a valid direction, update the enemy
+                if direction != (0, 0) {
+                    enemies[index].grid_position.0 += direction.0;
+                    enemies[index].grid_position.1 += direction.1;
+                    enemies[index].position = nalgebra::Vector2::new(enemies[index].grid_position.0 * TILE_SIZE, enemies[index].grid_position.1 * TILE_SIZE);
+                    enemies[index].last_move = last_move_clone; // Update the last_move with the clone
+                }
+            }
+
         }
 
         // Render each light onto the light texture

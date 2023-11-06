@@ -9,6 +9,7 @@ Randomly generated roguelike game
 * Randomly generated dungeon.
 * Point Light.
 * Randomly spawning enemies.
+* Enemy follow player
 
 ## Source code
 Source code can be shown [here](/examples/roguelike/game_example.rs)
