@@ -251,7 +251,7 @@ Example of building tetris game can be found [here](examples/tetris_game_example
 
 ### 2. Roguelike prototype (In progress)
 
-Example of building roguelike prototype can be found [here](examples/roguelike/game_example.rs)
+Example of building roguelike prototype can be found [here](examples/roguelike/README_game.md)
 
 ### 3. Visual effects
 

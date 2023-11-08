@@ -4,6 +4,7 @@ Randomly generated roguelike game
 
 ## Instructions
 * Move - Arrows (up, down, left, right)
+* Attack - Space
 
 ## Key features:
 * Randomly generated dungeon.

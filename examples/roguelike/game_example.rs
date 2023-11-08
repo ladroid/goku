@@ -193,6 +193,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut down_key_pressed = false;
     let mut player_moved = false;
 
+    // Key press state tracking for attacking
+    let mut attack_key_pressed = false;
+
     'mainloop: loop {
         player_moved = false;
 
@@ -259,18 +262,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 player_moved = true;
                             }
                         },
+                        // Handle attack key event
+                        two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) if !attack_key_pressed => {
+                            attack_key_pressed = true;
+                        },
                         _ => {},
                         }
                     },
                     two_d::GEvent::KeyUp(ref key_event) => {
                         match key_event {
-                            two_d::KeyEvent::Left | two_d::KeyEvent::Right | two_d::KeyEvent::Up | two_d::KeyEvent::Down => {
+                            two_d::KeyEvent::Left | two_d::KeyEvent::Right | two_d::KeyEvent::Up | two_d::KeyEvent::Down | two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) => {
                                 left_key_pressed = false;
                                 right_key_pressed = false;
                                 up_key_pressed = false;
                                 down_key_pressed = false;
                                 player.texture_manager_anim.set_animation("idle");
                                 player_moved = false;
+                                attack_key_pressed = false;
                             },
                             _ => {},
                         }
@@ -359,6 +367,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
+        }
+
+        // Game loop
+        if attack_key_pressed {
+            // Define the attack range
+            let attack_range = 1; // One tile around the player
+
+            // Use retain to keep only the enemies that are not hit
+            enemies.retain(|enemy| {
+                let distance_x = (player_grid_position.0 as i32 - enemy.grid_position.0).abs();
+                let distance_y = (player_grid_position.1 as i32 - enemy.grid_position.1).abs();
+
+                // If the enemy is outside the attack range, keep it
+                distance_x > attack_range || distance_y > attack_range
+            });
+
+            attack_key_pressed = false; // Reset the attack key after handling the attack
         }
 
         // Render each light onto the light texture
