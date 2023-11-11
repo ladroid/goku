@@ -33,7 +33,7 @@ fn enemy_collision_check(enemies: &[Enemy], current_index: usize, new_position: 
     false
 }
 
-fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> (Vec<Vec<u32>>, Vec<(usize, usize)>) {
+fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_pos: (usize, usize)) -> (Vec<Vec<u32>>, Vec<(usize, usize)>, (usize, usize)) {
     let mut rng = rand::thread_rng();
     let mut grid = vec![vec![0; width]; height];  // Initialize grid with empty spaces
     let mut spawn_points = Vec::new();
@@ -69,8 +69,21 @@ fn generate_level(width: usize, height: usize, player_pos: (usize, usize), door_
         }
     }
 
+    // Determine a random position for the ladder
+    let ladder_pos = {
+        let mut pos;
+        loop {
+            pos = (rng.gen_range(1..width - 1), rng.gen_range(1..height - 1));
+            if pos != player_pos && pos != door_pos && grid[pos.1][pos.0] == 0 {
+                break;
+            }
+        }
+        pos
+    };
+    grid[ladder_pos.1][ladder_pos.0] = 3;
+
     // grid
-    (grid, spawn_points)
+    (grid, spawn_points, ladder_pos)
 }
 
 // Add this function to calculate the next move for an enemy to move towards the player
@@ -142,8 +155,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     wall.load_texture(&std::path::Path::new("door.png"))?;
     let mut obstacle = two_d::TextureManager::new(&texture_creator);
     obstacle.load_texture(&std::path::Path::new("stone.png"))?;
+    let mut ladder = two_d::TextureManager::new(&texture_creator);
+    ladder.load_texture(&std::path::Path::new("ladder.png"))?;
 
-    let (generated_map, mut spawn_points) = generate_level(10, 10, player_grid_position, (1, 8));
+    let (generated_map, mut spawn_points, mut ladder_position) = generate_level(10, 10, player_grid_position, (1, 8));
     let mut rng = rand::thread_rng();
     let mut enemies = Vec::new();
 
@@ -166,9 +181,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let tile_map = two_d::Tile::from_generated_map(
+    let mut tile_map = two_d::Tile::from_generated_map(
         generated_map,
-        vec![&floor, &wall, &obstacle],
+        vec![&floor, &wall, &obstacle, &ladder],
         None,
     )?;
 
@@ -206,25 +221,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     two_d::GEvent::KeyDown(ref key_event) => {
                         match key_event {
                             // Check collisions for left movement
-                        two_d::KeyEvent::Left if !left_key_pressed => {
-                            let new_position = (player_grid_position.0 - 1, player_grid_position.1);
-                            if player_grid_position.0 > 0
-                                && tile_map.tile_map[new_position.1][new_position.0] == 0
-                                && !check_collision_with_enemies(&enemies, new_position)
-                            {
-                                left_key_pressed = true;
-                                player_grid_position = new_position;
-                                flip_horizontal = true;
-                                player.texture_manager_anim.set_animation("walk_right");
-                                player_moved = true;
-                            }
-                        },
+                            two_d::KeyEvent::Left if !left_key_pressed => {
+                                let new_position = (player_grid_position.0 - 1, player_grid_position.1);
+                                if player_grid_position.0 > 0
+                                    && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
+                                    && !check_collision_with_enemies(&enemies, new_position)
+                                {
+                                    left_key_pressed = true;
+                                    player_grid_position = new_position;
+                                    flip_horizontal = true;
+                                    player.texture_manager_anim.set_animation("walk_right");
+                                    player_moved = true;
+                                }
+                            },
 
                         // Check collisions for right movement
                         two_d::KeyEvent::Right if !right_key_pressed => {
                             let new_position = (player_grid_position.0 + 1, player_grid_position.1);
                             if player_grid_position.0 < tile_map.tile_map[0].len() - 1
-                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3) // Allow movement if tile is empty or ladder
                                 && !check_collision_with_enemies(&enemies, new_position)
                             {
                                 right_key_pressed = true;
@@ -239,7 +254,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         two_d::KeyEvent::Up if !up_key_pressed => {
                             let new_position = (player_grid_position.0, player_grid_position.1 - 1);
                             if player_grid_position.1 > 0
-                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
                                 && !check_collision_with_enemies(&enemies, new_position)
                             {
                                 up_key_pressed = true;
@@ -253,7 +268,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         two_d::KeyEvent::Down if !down_key_pressed => {
                             let new_position = (player_grid_position.0, player_grid_position.1 + 1);
                             if player_grid_position.1 < tile_map.tile_map.len() - 1
-                                && tile_map.tile_map[new_position.1][new_position.0] == 0
+                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
                                 && !check_collision_with_enemies(&enemies, new_position)
                             {
                                 down_key_pressed = true;
@@ -292,6 +307,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Update camera position to follow player
         camera.update(player.get_position());
+
+        if player_grid_position == ladder_position {
+            let (new_map, new_spawn_points, new_ladder_position) = generate_level(10, 10, player_grid_position, (1, 8));
+            ladder_position = new_ladder_position;
+
+            // Update tile_map with the new level
+            tile_map = two_d::Tile::from_generated_map(
+                new_map,
+                vec![&floor, &wall, &obstacle, &ladder],
+                None,
+            )?;
+
+            // Clear and repopulate enemies for the new level
+            enemies.clear();
+            for _ in 0..5 {
+                if let Some(spawn_point) = new_spawn_points.choose(&mut rng).cloned() {
+                    let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
+                    enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("E:\\Projects\\RustProj\\GameEngine\\goku\\test_assets\\player_anim.png"), 16, 18, 150, 0)?;
+
+                    let enemy = Enemy {
+                        position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
+                        grid_position: (spawn_point.0 as i32, spawn_point.1 as i32),
+                        texture_manager: enemy_texture_manager,
+                        speed: 3,
+                        last_move: std::time::Instant::now(),
+                    };
+                    enemies.push(enemy);
+                }
+            }
+            // Reset player animation state
+            player.texture_manager_anim.set_animation("idle");
+        }
 
         window.canvas.clear();
 
@@ -336,6 +383,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+
+        // Assuming you're using a similar rendering method for the ladder as for other tiles
+        let ladder_rect = sdl2::rect::Rect::new(
+            (ladder_position.0 as i32 * TILE_SIZE as i32) as i32, 
+            (ladder_position.1 as i32 * TILE_SIZE as i32) as i32, 
+            TILE_SIZE as u32, TILE_SIZE as u32
+        );
+        let transformed_ladder_rect = camera.transform_rect(ladder_rect);
+        ladder.render_texture(&mut window.canvas, transformed_ladder_rect)?;
 
         // Call the move_towards_player function for each enemy
         if player_moved {
@@ -401,7 +457,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
         window.canvas.copy(&darkness_texture, None, None)?;
         window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
-
+ 
         window.canvas.present();
     }
     Ok(())
