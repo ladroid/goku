@@ -129,6 +129,40 @@ fn move_towards_player(
     }
 }
 
+enum GameState {
+    Menu,
+    Playing,
+}
+
+fn render_menu(canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, play_button: &two_d::Button, quit_button: &two_d::Button) -> Result<(), String> {
+    // Clear the screen with a dark background
+    canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    // Render buttons
+    play_button.render(canvas)?;
+    quit_button.render(canvas)?;
+
+    Ok(())
+}
+
+fn handle_menu_event(event: sdl2::event::Event, play_button: &two_d::Button, quit_button: &two_d::Button, game_state: &mut GameState) {
+    match event {
+        sdl2::event::Event::Quit { .. } | sdl2::event::Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Escape), .. } => {
+            *game_state = GameState::Menu;
+        },
+        sdl2::event::Event::MouseButtonDown { x, y, .. } => {
+            if play_button.is_pressed(x, y) {
+                *game_state = GameState::Playing;
+            } else if quit_button.is_pressed(x, y) {
+                // Exit the game
+                std::process::exit(0);
+            }
+        },
+        _ => {}
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut window = two_d::Window::new("My Game", 800, 600)?;
 
@@ -191,16 +225,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut flip_horizontal = false;
 
-    let mut light_spot_texture = texture_creator.load_texture("point_light.png")?;
-    let light = two_d::PointLight::new(
-        nalgebra::Vector2::new(400.0, 300.0),
-        100.0,
-        0.6,  // Intensity: 0.0 (off) to 1.0 (full intensity)
-        sdl2::pixels::Color::RGB(255, 255, 255)  // White color for pure light. You can change this!
-    );
-    let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
-    darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
-
     // Key press state tracking
     let mut left_key_pressed = false;
     let mut right_key_pressed = false;
@@ -211,252 +235,276 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Key press state tracking for attacking
     let mut attack_key_pressed = false;
 
-    'mainloop: loop {
-        player_moved = false;
+    let mut game_state = GameState::Menu;
+    // layer + button
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+    let mut ui_layer = two_d::Layer::new();
+    // Load a font:
+    let font_path = std::path::Path::new("ARIALUNI.TTF");
+    let font_size = 24;
+    let font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
+    let text_box = std::rc::Rc::new(two_d::TextBox::new("Play".to_lowercase(), font, sdl2::rect::Rect::new(340, 340, 120, 50)));
+    let play_button = std::rc::Rc::new(two_d::Button::new(text_box.clone(), 
+    sdl2::pixels::Color::RGB(123, 23, 56), 
+    sdl2::rect::Rect::new(340, 340, 120, 50), (0, 0), 0, 
+    Box::new(|| {
+        println!("Button pressed!");
+    }),));
 
-        for event in input_handler.poll_events() {
-            if let Some(event) = two_d::from_sdl_event(event) {
-                match event {
-                    two_d::GEvent::Quit | two_d::GEvent::KeyDown(two_d::KeyEvent::Escape) => break 'mainloop,
-                    two_d::GEvent::KeyDown(ref key_event) => {
-                        match key_event {
-                            // Check collisions for left movement
-                            two_d::KeyEvent::Left if !left_key_pressed => {
-                                let new_position = (player_grid_position.0 - 1, player_grid_position.1);
-                                if player_grid_position.0 > 0
-                                    && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
-                                    && !check_collision_with_enemies(&enemies, new_position)
-                                {
-                                    left_key_pressed = true;
-                                    player_grid_position = new_position;
-                                    flip_horizontal = true;
-                                    player.texture_manager_anim.set_animation("walk_right");
-                                    player_moved = true;
+    let font2 = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
+    let text_box2 = std::rc::Rc::new(two_d::TextBox::new("Quit".to_lowercase(), font2, sdl2::rect::Rect::new(340, 420, 120, 50)));
+    let quit_button = std::rc::Rc::new(two_d::Button::new(text_box2.clone(), 
+    sdl2::pixels::Color::RGB(123, 23, 56), 
+    sdl2::rect::Rect::new(340, 420, 120, 50), (0, 0), 0, 
+    Box::new(|| {
+        println!("Button pressed!");
+    }),));
+    ui_layer.add_button(play_button.clone());
+    ui_layer.add_button(quit_button.clone());
+
+    'mainloop: loop {
+
+        match game_state {
+            GameState::Menu => {
+                // Render menu and handle menu events
+                for event in input_handler.poll_events() {
+                    handle_menu_event(event, &play_button, &quit_button, &mut game_state);
+                }
+                render_menu(&mut window.canvas, &play_button, &quit_button)?;
+            },
+            GameState::Playing => {
+                // Existing game logic goes here
+                player_moved = false;
+
+                for event in input_handler.poll_events() {
+                    if let Some(event) = two_d::from_sdl_event(event) {
+                        match event {
+                            two_d::GEvent::Quit | two_d::GEvent::KeyDown(two_d::KeyEvent::Escape) => break 'mainloop,
+                            two_d::GEvent::KeyDown(ref key_event) => {
+                                match key_event {
+                                    // Check collisions for left movement
+                                    two_d::KeyEvent::Left if !left_key_pressed => {
+                                        let new_position = (player_grid_position.0 - 1, player_grid_position.1);
+                                        if player_grid_position.0 > 0
+                                            && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
+                                            && !check_collision_with_enemies(&enemies, new_position)
+                                        {
+                                            left_key_pressed = true;
+                                            player_grid_position = new_position;
+                                            flip_horizontal = true;
+                                            player.texture_manager_anim.set_animation("walk_right");
+                                            player_moved = true;
+                                        }
+                                    },
+
+                                // Check collisions for right movement
+                                two_d::KeyEvent::Right if !right_key_pressed => {
+                                    let new_position = (player_grid_position.0 + 1, player_grid_position.1);
+                                    if player_grid_position.0 < tile_map.tile_map[0].len() - 1
+                                        && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3) // Allow movement if tile is empty or ladder
+                                        && !check_collision_with_enemies(&enemies, new_position)
+                                    {
+                                        right_key_pressed = true;
+                                        player_grid_position = new_position;
+                                        flip_horizontal = false;
+                                        player.texture_manager_anim.set_animation("walk_right");
+                                        player_moved = true;
+                                    }
+                                },
+
+                                // Check collisions for up movement
+                                two_d::KeyEvent::Up if !up_key_pressed => {
+                                    let new_position = (player_grid_position.0, player_grid_position.1 - 1);
+                                    if player_grid_position.1 > 0
+                                        && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
+                                        && !check_collision_with_enemies(&enemies, new_position)
+                                    {
+                                        up_key_pressed = true;
+                                        player_grid_position = new_position;
+                                        player.texture_manager_anim.set_animation("walk_up");
+                                        player_moved = true;
+                                    }
+                                },
+
+                                // Check collisions for down movement
+                                two_d::KeyEvent::Down if !down_key_pressed => {
+                                    let new_position = (player_grid_position.0, player_grid_position.1 + 1);
+                                    if player_grid_position.1 < tile_map.tile_map.len() - 1
+                                        && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
+                                        && !check_collision_with_enemies(&enemies, new_position)
+                                    {
+                                        down_key_pressed = true;
+                                        player_grid_position = new_position;
+                                        player.texture_manager_anim.set_animation("walk_down");
+                                        player_moved = true;
+                                    }
+                                },
+                                // Handle attack key event
+                                two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) if !attack_key_pressed => {
+                                    attack_key_pressed = true;
+                                },
+                                _ => {},
                                 }
                             },
-
-                        // Check collisions for right movement
-                        two_d::KeyEvent::Right if !right_key_pressed => {
-                            let new_position = (player_grid_position.0 + 1, player_grid_position.1);
-                            if player_grid_position.0 < tile_map.tile_map[0].len() - 1
-                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3) // Allow movement if tile is empty or ladder
-                                && !check_collision_with_enemies(&enemies, new_position)
-                            {
-                                right_key_pressed = true;
-                                player_grid_position = new_position;
-                                flip_horizontal = false;
-                                player.texture_manager_anim.set_animation("walk_right");
-                                player_moved = true;
+                            two_d::GEvent::KeyUp(ref key_event) => {
+                                match key_event {
+                                    two_d::KeyEvent::Left | two_d::KeyEvent::Right | two_d::KeyEvent::Up | two_d::KeyEvent::Down | two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) => {
+                                        left_key_pressed = false;
+                                        right_key_pressed = false;
+                                        up_key_pressed = false;
+                                        down_key_pressed = false;
+                                        player.texture_manager_anim.set_animation("idle");
+                                        player_moved = false;
+                                        attack_key_pressed = false;
+                                    },
+                                    _ => {},
+                                }
                             }
-                        },
-
-                        // Check collisions for up movement
-                        two_d::KeyEvent::Up if !up_key_pressed => {
-                            let new_position = (player_grid_position.0, player_grid_position.1 - 1);
-                            if player_grid_position.1 > 0
-                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
-                                && !check_collision_with_enemies(&enemies, new_position)
-                            {
-                                up_key_pressed = true;
-                                player_grid_position = new_position;
-                                player.texture_manager_anim.set_animation("walk_up");
-                                player_moved = true;
-                            }
-                        },
-
-                        // Check collisions for down movement
-                        two_d::KeyEvent::Down if !down_key_pressed => {
-                            let new_position = (player_grid_position.0, player_grid_position.1 + 1);
-                            if player_grid_position.1 < tile_map.tile_map.len() - 1
-                                && (tile_map.tile_map[new_position.1][new_position.0] == 0 || tile_map.tile_map[new_position.1][new_position.0] == 3)
-                                && !check_collision_with_enemies(&enemies, new_position)
-                            {
-                                down_key_pressed = true;
-                                player_grid_position = new_position;
-                                player.texture_manager_anim.set_animation("walk_down");
-                                player_moved = true;
-                            }
-                        },
-                        // Handle attack key event
-                        two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) if !attack_key_pressed => {
-                            attack_key_pressed = true;
-                        },
-                        _ => {},
-                        }
-                    },
-                    two_d::GEvent::KeyUp(ref key_event) => {
-                        match key_event {
-                            two_d::KeyEvent::Left | two_d::KeyEvent::Right | two_d::KeyEvent::Up | two_d::KeyEvent::Down | two_d::KeyEvent::Other(sdl2::keyboard::Keycode::Space) => {
-                                left_key_pressed = false;
-                                right_key_pressed = false;
-                                up_key_pressed = false;
-                                down_key_pressed = false;
-                                player.texture_manager_anim.set_animation("idle");
-                                player_moved = false;
-                                attack_key_pressed = false;
-                            },
-                            _ => {},
                         }
                     }
                 }
-            }
-        }
 
-        // Update player pixel position
-        player.position = nalgebra::Vector2::new(player_grid_position.0 as i32 * TILE_SIZE as i32, player_grid_position.1 as i32 * TILE_SIZE as i32);
+                // Update player pixel position
+                player.position = nalgebra::Vector2::new(player_grid_position.0 as i32 * TILE_SIZE as i32, player_grid_position.1 as i32 * TILE_SIZE as i32);
 
-        // Update camera position to follow player
-        camera.update(player.get_position());
+                // Update camera position to follow player
+                camera.update(player.get_position());
 
-        if player_grid_position == ladder_position {
-            let (new_map, new_spawn_points, new_ladder_position) = generate_level(10, 10, player_grid_position, (1, 8));
-            ladder_position = new_ladder_position;
+                if player_grid_position == ladder_position {
+                    let (new_map, new_spawn_points, new_ladder_position) = generate_level(10, 10, player_grid_position, (1, 8));
+                    ladder_position = new_ladder_position;
 
-            // Update tile_map with the new level
-            tile_map = two_d::Tile::from_generated_map(
-                new_map,
-                vec![&floor, &wall, &obstacle, &ladder],
-                None,
-            )?;
+                    // Update tile_map with the new level
+                    tile_map = two_d::Tile::from_generated_map(
+                        new_map,
+                        vec![&floor, &wall, &obstacle, &ladder],
+                        None,
+                    )?;
 
-            // Clear and repopulate enemies for the new level
-            enemies.clear();
-            for _ in 0..5 {
-                if let Some(spawn_point) = new_spawn_points.choose(&mut rng).cloned() {
-                    let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
-                    enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("E:\\Projects\\RustProj\\GameEngine\\goku\\test_assets\\player_anim.png"), 16, 18, 150, 0)?;
+                    // Clear and repopulate enemies for the new level
+                    enemies.clear();
+                    for _ in 0..5 {
+                        if let Some(spawn_point) = new_spawn_points.choose(&mut rng).cloned() {
+                            let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
+                            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("player_anim.png"), 16, 18, 150, 0)?;
 
-                    let enemy = Enemy {
-                        position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
-                        grid_position: (spawn_point.0 as i32, spawn_point.1 as i32),
-                        texture_manager: enemy_texture_manager,
-                        speed: 3,
-                        last_move: std::time::Instant::now(),
-                    };
-                    enemies.push(enemy);
+                            let enemy = Enemy {
+                                position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
+                                grid_position: (spawn_point.0 as i32, spawn_point.1 as i32),
+                                texture_manager: enemy_texture_manager,
+                                speed: 3,
+                                last_move: std::time::Instant::now(),
+                            };
+                            enemies.push(enemy);
+                        }
+                    }
+                    // Reset player animation state
+                    player.texture_manager_anim.set_animation("idle");
                 }
-            }
-            // Reset player animation state
-            player.texture_manager_anim.set_animation("idle");
-        }
 
-        window.canvas.clear();
+                window.canvas.clear();
 
-        // Render tile map
-        for y in 0..tile_map.tile_map.len() {
-            for x in 0..tile_map.tile_map[0].len() {
-                let tile_index = tile_map.tile_map[y][x] as usize;
-                let texture_manager = &tile_map.textures[tile_index];
-                let rect = sdl2::rect::Rect::new((x as i32 * TILE_SIZE as i32) as i32, (y as i32 * TILE_SIZE as i32) as i32, TILE_SIZE as u32, TILE_SIZE as u32);
-                let transformed_rect = camera.transform_rect(rect);
-                texture_manager.render_texture(&mut window.canvas, transformed_rect)?;
-            }
-        }
+                // Render tile map
+                for y in 0..tile_map.tile_map.len() {
+                    for x in 0..tile_map.tile_map[0].len() {
+                        let tile_index = tile_map.tile_map[y][x] as usize;
+                        let texture_manager = &tile_map.textures[tile_index];
+                        let rect = sdl2::rect::Rect::new((x as i32 * TILE_SIZE as i32) as i32, (y as i32 * TILE_SIZE as i32) as i32, TILE_SIZE as u32, TILE_SIZE as u32);
+                        let transformed_rect = camera.transform_rect(rect);
+                        texture_manager.render_texture(&mut window.canvas, transformed_rect)?;
+                    }
+                }
 
-        // Render player
-        if let Some(current_animation_tag) = &player.texture_manager_anim.current_animation {
-            if let Some(animated_texture) = player.texture_manager_anim.animations.get(current_animation_tag) {
-                let player_rect = sdl2::rect::Rect::new(
-                    player.position.x as i32, 
-                    player.position.y as i32, 
-                    animated_texture.sprite_sheet.frame_width * 2, 
-                    animated_texture.sprite_sheet.frame_height * 2
+                // Render player
+                if let Some(current_animation_tag) = &player.texture_manager_anim.current_animation {
+                    if let Some(animated_texture) = player.texture_manager_anim.animations.get(current_animation_tag) {
+                        let player_rect = sdl2::rect::Rect::new(
+                            player.position.x as i32, 
+                            player.position.y as i32, 
+                            animated_texture.sprite_sheet.frame_width * 2, 
+                            animated_texture.sprite_sheet.frame_height * 2
+                        );
+                        let transformed_player_rect = camera.transform_rect(player_rect);
+                        player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
+                    }
+                }
+
+                // Render enemies inside the game loop
+                for enemy in &mut enemies {
+                    // Render the enemy using its texture and position
+                    if let Some(current_animation_tag) = &enemy.texture_manager.current_animation {
+                        if let Some(animated_texture) = enemy.texture_manager.animations.get(current_animation_tag) {
+                            let player_rect = sdl2::rect::Rect::new(
+                                enemy.position.x as i32, 
+                                enemy.position.y as i32, 
+                                animated_texture.sprite_sheet.frame_width * 2, 
+                                animated_texture.sprite_sheet.frame_height * 2
+                            );
+                            let transformed_player_rect = camera.transform_rect(player_rect);
+                            enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
+                        }
+                    }
+                }
+
+                // Assuming you're using a similar rendering method for the ladder as for other tiles
+                let ladder_rect = sdl2::rect::Rect::new(
+                    (ladder_position.0 as i32 * TILE_SIZE as i32) as i32, 
+                    (ladder_position.1 as i32 * TILE_SIZE as i32) as i32, 
+                    TILE_SIZE as u32, TILE_SIZE as u32
                 );
-                let transformed_player_rect = camera.transform_rect(player_rect);
-                player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
-            }
-        }
+                let transformed_ladder_rect = camera.transform_rect(ladder_rect);
+                ladder.render_texture(&mut window.canvas, transformed_ladder_rect)?;
 
-        // Render enemies inside the game loop
-        for enemy in &mut enemies {
-            // Render the enemy using its texture and position
-            if let Some(current_animation_tag) = &enemy.texture_manager.current_animation {
-                if let Some(animated_texture) = enemy.texture_manager.animations.get(current_animation_tag) {
-                    let player_rect = sdl2::rect::Rect::new(
-                        enemy.position.x as i32, 
-                        enemy.position.y as i32, 
-                        animated_texture.sprite_sheet.frame_width * 2, 
-                        animated_texture.sprite_sheet.frame_height * 2
-                    );
-                    let transformed_player_rect = camera.transform_rect(player_rect);
-                    enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
+                // Call the move_towards_player function for each enemy
+                if player_moved {
+                    // In the game loop, when updating enemy positions
+                    for index in 0..enemies.len() {
+                        let player_position = (player_grid_position.0 as i32, player_grid_position.1 as i32);
+                        let enemy_position = (enemies[index].grid_position.0, enemies[index].grid_position.1);
+                        
+                        // Temporarily clone the enemy's last_move to pass it to the function
+                        let mut last_move_clone = enemies[index].last_move.clone();
+
+                        let direction = move_towards_player(
+                            player_position,
+                            enemy_position,
+                            &enemies, // This is safe because we are not mutating enemies here
+                            index,
+                            &tile_map,
+                            enemies[index].speed,
+                            &mut last_move_clone, // Use the clone instead of the original
+                            player_moved
+                        );
+                        
+                        // If move_towards_player determined a valid direction, update the enemy
+                        if direction != (0, 0) {
+                            enemies[index].grid_position.0 += direction.0;
+                            enemies[index].grid_position.1 += direction.1;
+                            enemies[index].position = nalgebra::Vector2::new(enemies[index].grid_position.0 * TILE_SIZE, enemies[index].grid_position.1 * TILE_SIZE);
+                            enemies[index].last_move = last_move_clone; // Update the last_move with the clone
+                        }
+                    }
+
                 }
-            }
-        }
 
-        // Assuming you're using a similar rendering method for the ladder as for other tiles
-        let ladder_rect = sdl2::rect::Rect::new(
-            (ladder_position.0 as i32 * TILE_SIZE as i32) as i32, 
-            (ladder_position.1 as i32 * TILE_SIZE as i32) as i32, 
-            TILE_SIZE as u32, TILE_SIZE as u32
-        );
-        let transformed_ladder_rect = camera.transform_rect(ladder_rect);
-        ladder.render_texture(&mut window.canvas, transformed_ladder_rect)?;
+                // Game loop
+                if attack_key_pressed {
+                    // Define the attack range
+                    let attack_range = 1; // One tile around the player
 
-        // Call the move_towards_player function for each enemy
-        if player_moved {
-            // In the game loop, when updating enemy positions
-            for index in 0..enemies.len() {
-                let player_position = (player_grid_position.0 as i32, player_grid_position.1 as i32);
-                let enemy_position = (enemies[index].grid_position.0, enemies[index].grid_position.1);
-                
-                // Temporarily clone the enemy's last_move to pass it to the function
-                let mut last_move_clone = enemies[index].last_move.clone();
+                    // Use retain to keep only the enemies that are not hit
+                    enemies.retain(|enemy| {
+                        let distance_x = (player_grid_position.0 as i32 - enemy.grid_position.0).abs();
+                        let distance_y = (player_grid_position.1 as i32 - enemy.grid_position.1).abs();
 
-                let direction = move_towards_player(
-                    player_position,
-                    enemy_position,
-                    &enemies, // This is safe because we are not mutating enemies here
-                    index,
-                    &tile_map,
-                    enemies[index].speed,
-                    &mut last_move_clone, // Use the clone instead of the original
-                    player_moved
-                );
-                
-                // If move_towards_player determined a valid direction, update the enemy
-                if direction != (0, 0) {
-                    enemies[index].grid_position.0 += direction.0;
-                    enemies[index].grid_position.1 += direction.1;
-                    enemies[index].position = nalgebra::Vector2::new(enemies[index].grid_position.0 * TILE_SIZE, enemies[index].grid_position.1 * TILE_SIZE);
-                    enemies[index].last_move = last_move_clone; // Update the last_move with the clone
+                        // If the enemy is outside the attack range, keep it
+                        distance_x > attack_range || distance_y > attack_range
+                    });
+
+                    attack_key_pressed = false; // Reset the attack key after handling the attack
                 }
-            }
-
+            },
         }
-
-        // Game loop
-        if attack_key_pressed {
-            // Define the attack range
-            let attack_range = 1; // One tile around the player
-
-            // Use retain to keep only the enemies that are not hit
-            enemies.retain(|enemy| {
-                let distance_x = (player_grid_position.0 as i32 - enemy.grid_position.0).abs();
-                let distance_y = (player_grid_position.1 as i32 - enemy.grid_position.1).abs();
-
-                // If the enemy is outside the attack range, keep it
-                distance_x > attack_range || distance_y > attack_range
-            });
-
-            attack_key_pressed = false; // Reset the attack key after handling the attack
-        }
-
-        // Render each light onto the light texture
-        window.canvas.with_texture_canvas(&mut darkness_texture, |canvas| {
-            // Clear the texture with a semi-transparent black for darkness
-            canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 150));
-            canvas.clear();
-            
-            // Render each light onto this dark texture
-            light.render(canvas, &mut light_spot_texture);
-        })?;
-
-        // Set blend mode to Mod for blending the light texture onto the main scene
-        // Now, set the blend mode and render the darkness_texture over the main canvas to achieve the lighting effect
-        window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
-        window.canvas.copy(&darkness_texture, None, None)?;
-        window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
  
         window.canvas.present();
     }
