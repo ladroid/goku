@@ -134,14 +134,16 @@ enum GameState {
     Playing,
 }
 
-fn render_menu(canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, play_button: &two_d::Button, quit_button: &two_d::Button) -> Result<(), String> {
+fn render_menu(canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, title: &two_d::TextBox, play_button: &two_d::Button, quit_button: &two_d::Button, color: sdl2::pixels::Color) -> Result<(), String> {
     // Clear the screen with a dark background
     canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
     canvas.clear();
 
+    title.render(canvas, color)?;
+
     // Render buttons
-    play_button.render(canvas)?;
-    quit_button.render(canvas)?;
+    play_button.render(canvas, color)?;
+    quit_button.render(canvas, color)?;
 
     Ok(())
 }
@@ -243,22 +245,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let font_path = std::path::Path::new("ARIALUNI.TTF");
     let font_size = 24;
     let font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
-    let text_box = std::rc::Rc::new(two_d::TextBox::new("Play".to_lowercase(), font, sdl2::rect::Rect::new(340, 340, 120, 50)));
+    let text_box = std::rc::Rc::new(two_d::TextBox::new("Play".to_lowercase(), font, sdl2::rect::Rect::new(340, 340, 80, 50)));
     let play_button = std::rc::Rc::new(two_d::Button::new(text_box.clone(), 
-    sdl2::pixels::Color::RGB(123, 23, 56), 
+    sdl2::pixels::Color::RGB(0, 0, 0), 
     sdl2::rect::Rect::new(340, 340, 120, 50), (0, 0), 0, 
     Box::new(|| {
         println!("Button pressed!");
     }),));
 
     let font2 = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
-    let text_box2 = std::rc::Rc::new(two_d::TextBox::new("Quit".to_lowercase(), font2, sdl2::rect::Rect::new(340, 420, 120, 50)));
+    let text_box2 = std::rc::Rc::new(two_d::TextBox::new("Quit".to_lowercase(), font2, sdl2::rect::Rect::new(340, 420, 80, 50)));
     let quit_button = std::rc::Rc::new(two_d::Button::new(text_box2.clone(), 
-    sdl2::pixels::Color::RGB(123, 23, 56), 
+    sdl2::pixels::Color::RGB(0, 0, 0), 
     sdl2::rect::Rect::new(340, 420, 120, 50), (0, 0), 0, 
     Box::new(|| {
         println!("Button pressed!");
     }),));
+
+    let title_font_size = 36; // Larger font for the title
+    let title_font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, title_font_size)?);
+    let title_text = "Rusty Dungeon";
+    let title_width = 300; // Width of the title box, adjust as needed
+    let title_height = 50;  // Height of the title box, adjust as needed
+    let title_x = (800 - title_width) / 2; // Center the title
+    let title_y = 50; // Position the title at 50 pixels from the top
+
+    let text_box_title = std::rc::Rc::new(two_d::TextBox::new(
+        title_text.to_string(),
+        title_font,
+        sdl2::rect::Rect::new(title_x, title_y, title_width as u32, title_height),
+    ));
+
     ui_layer.add_button(play_button.clone());
     ui_layer.add_button(quit_button.clone());
 
@@ -270,7 +287,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for event in input_handler.poll_events() {
                     handle_menu_event(event, &play_button, &quit_button, &mut game_state);
                 }
-                render_menu(&mut window.canvas, &play_button, &quit_button)?;
+                render_menu(&mut window.canvas, &text_box_title, &play_button, &quit_button, sdl2::pixels::Color::RGB(255, 255, 255))?;
             },
             GameState::Playing => {
                 // Existing game logic goes here

@@ -34,9 +34,9 @@ impl<'a> Layer<'a> {
         self.checkboxes.push(checkbox);
     }
 
-    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>, color_text: sdl2::pixels::Color) -> Result<(), String> {
         for button in &self.buttons {
-            button.render(canvas)?;
+            button.render(canvas, color_text)?;
         }
         Ok(())
     }
@@ -135,7 +135,7 @@ impl<'a> Button<'a> {
     pub fn is_pressed(&self, x: i32, y: i32) -> bool {
         self.bg_rect.contains_point(sdl2::rect::Point::new(x, y))
     }
-    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>, color_text: sdl2::pixels::Color) -> Result<(), String> {
         canvas.set_draw_color(self.color);
 
         // Draw the main rectangular body of the button
@@ -159,7 +159,7 @@ impl<'a> Button<'a> {
         self.draw_filled_circle(canvas, self.bg_rect.x() + self.bg_rect.width() as i32 - self.radius, self.bg_rect.y() + self.bg_rect.height() as i32 - self.radius, self.radius)?; // bottom-right corner
         
         canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 0)); // Reset the draw color
-        self.text_box.render(canvas)
+        self.text_box.render(canvas, color_text)
     }
 
     fn draw_filled_circle(&self, canvas: &mut Canvas<sdl2::video::Window>, cx: i32, cy: i32, r: i32) -> Result<(), String> {
@@ -259,8 +259,8 @@ impl<'a> TextBox<'a> {
     //     Ok(())
     // }
 
-    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
-        let surface = self.font.render(&self.text).blended(sdl2::pixels::Color::RGBA(0, 0, 0, 255)).map_err(|e| e.to_string())?;
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>, color_text: sdl2::pixels::Color) -> Result<(), String> {
+        let surface = self.font.render(&self.text).blended(color_text).map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
         canvas.copy(&texture, None, self.rect)?;
@@ -295,8 +295,8 @@ impl<'a> Checkbox<'a> {
         Self { button, checked: false }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>) -> Result<(), String> {
-        self.button.render(canvas)?;
+    pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>, color_text: sdl2::pixels::Color) -> Result<(), String> {
+        self.button.render(canvas, color_text)?;
 
         if self.checked {
             let checkmark_rect = sdl2::rect::Rect::new(
