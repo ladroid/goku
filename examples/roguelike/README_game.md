@@ -12,6 +12,7 @@ Randomly generated roguelike game
 * Randomly spawning enemies.
 * Enemies follow player.
 * Infinite levels.
+* Enemies can attack player.
 
 ## Source code
 Source code can be shown [here](/examples/roguelike/game_example.rs)

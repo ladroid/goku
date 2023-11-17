@@ -184,6 +184,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     player.load_texture("walk_down", std::path::Path::new("character_walk_anim.png"), 16, 18, 150, 0)?;
     player.load_texture("walk_up", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 1)?;
     player.load_texture("walk_right", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 2)?;
+    let mut player_health = 100;
+    let mut last_player_attacked_time = std::time::Instant::now();
 
     let mut floor = two_d::TextureManager::new(&texture_creator);
     floor.load_texture(&std::path::Path::new("ground.png"))?;
@@ -417,6 +419,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     // Reset player animation state
                     player.texture_manager_anim.set_animation("idle");
+                    player_health = 100;
                 }
 
                 window.canvas.clear();
@@ -519,6 +522,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     });
 
                     attack_key_pressed = false; // Reset the attack key after handling the attack
+                }
+
+                let attack_cooldown = std::time::Duration::from_secs(1); // Set a cooldown period, e.g., 1 second
+
+                let mut attacked_by_enemy = false;
+
+                for enemy in &enemies {
+                    if !attacked_by_enemy 
+                        && player_grid_position == (enemy.grid_position.0 as usize, enemy.grid_position.1 as usize) 
+                        && last_player_attacked_time.elapsed() >= attack_cooldown {
+                        // Enemy is in the same cell and can attack
+                        player_health -= 5; // Adjust this value as needed
+                        println!("{}", player_health);
+                        attacked_by_enemy = true; // Mark that player was attacked
+                        last_player_attacked_time = std::time::Instant::now(); // Update last attacked time
+                    }
+                }
+
+                if attacked_by_enemy {
+                    // Handle post-attack logic here if necessary
+                }
+
+                // Still inside the GameState::Playing branch of the game loop
+                if player_health <= 0 {
+                    println!("Game Over");
+                    // Implement game over logic here
+                    break; // Or transition to a different game state
                 }
             },
         }
