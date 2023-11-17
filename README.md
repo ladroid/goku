@@ -47,7 +47,10 @@ goku is focused, lightweight and has few dependencies (mostly SDL2). It provides
 
 **IMPORTANT!!!**
 
-The documentation is located here -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* A quick overview is located here -> [Goku Engine](https://gokuengine.com/)
+* The documentation is located here -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* A development blog that covers our progress, plans and shiny new features is located here -> [News](https://gokuengine.com/news)
+* All examples are located here -> [Official Examples](https://github.com/ladroid/goku/tree/main/examples)
 
 ## Requirements
 ### Linux
