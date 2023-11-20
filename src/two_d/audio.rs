@@ -19,8 +19,8 @@ pub struct AudioPlayer {
 
 #[allow(dead_code)]
 impl AudioPlayer {
-    pub fn new(numchans: i32) -> Self {
-        let sdl_context = sdl2::init().unwrap();
+    pub fn new(numchans: i32, sdl_context: sdl2::Sdl) -> Self {
+        //let sdl_context = sdl2::init().unwrap();
         let _audio = sdl_context.audio().unwrap();
         let mixer_context = sdl2::mixer::init(sdl2::mixer::InitFlag::MP3 | sdl2::mixer::InitFlag::FLAC | sdl2::mixer::InitFlag::MOD | sdl2::mixer::InitFlag::OGG).unwrap();
 

@@ -259,6 +259,11 @@ impl<'a> TextBox<'a> {
     //     Ok(())
     // }
 
+    // Add a method to set the text
+    pub fn set_text(&mut self, new_text: String) {
+        self.text = new_text;
+    }
+
     pub fn render(&self, canvas: &mut Canvas<sdl2::video::Window>, color_text: sdl2::pixels::Color) -> Result<(), String> {
         let surface = self.font.render(&self.text).blended(color_text).map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();

@@ -278,11 +278,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sdl2::rect::Rect::new(title_x, title_y, title_width as u32, title_height),
     ));
 
+    // Load font for health display
+    let health_font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, 24)?);
+    let mut health_text_box = two_d::TextBox::new(format!("Health: {}", player_health), health_font, sdl2::rect::Rect::new(10, 10, 150, 50));
+
     ui_layer.add_button(play_button.clone());
     ui_layer.add_button(quit_button.clone());
 
     'mainloop: loop {
-
         match game_state {
             GameState::Menu => {
                 // Render menu and handle menu events
@@ -292,6 +295,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 render_menu(&mut window.canvas, &text_box_title, &play_button, &quit_button, sdl2::pixels::Color::RGB(255, 255, 255))?;
             },
             GameState::Playing => {
+                // sound effect
+                //audio_player.play(std::path::Path::new(""), 1, 10);
+                
                 // Existing game logic goes here
                 player_moved = false;
 
@@ -465,6 +471,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
+
+                // Update the health display
+                health_text_box.set_text(format!("Health: {}", player_health));
+                // Render the health display
+                health_text_box.render(&mut window.canvas, sdl2::pixels::Color::RGB(255, 255, 255))?;
 
                 // Assuming you're using a similar rendering method for the ladder as for other tiles
                 let ladder_rect = sdl2::rect::Rect::new(
