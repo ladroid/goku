@@ -13,7 +13,7 @@ Randomly generated roguelike game
 * Enemies follow player.
 * Infinite levels.
 * Enemies can attack player.
-* Simple health bar
+* Simple health bar.
 
 ## Source code
 Source code can be shown [here](/examples/roguelike/game_example.rs)

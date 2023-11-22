@@ -229,6 +229,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut flip_horizontal = false;
 
+    let mut light_spot_texture = texture_creator.load_texture("point_light.png")?;
+    let light = two_d::PointLight::new(
+        nalgebra::Vector2::new(400.0, 300.0),
+        100.0,
+        0.6,  // Intensity: 0.0 (off) to 1.0 (full intensity)
+        sdl2::pixels::Color::RGB(255, 255, 255)  // White color for pure light. You can change this!
+    );
+    let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
+    darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
+
     // Key press state tracking
     let mut left_key_pressed = false;
     let mut right_key_pressed = false;
@@ -295,9 +305,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 render_menu(&mut window.canvas, &text_box_title, &play_button, &quit_button, sdl2::pixels::Color::RGB(255, 255, 255))?;
             },
             GameState::Playing => {
-                // sound effect
-                //audio_player.play(std::path::Path::new(""), 1, 10);
-                
                 // Existing game logic goes here
                 player_moved = false;
 
@@ -472,11 +479,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
 
-                // Update the health display
-                health_text_box.set_text(format!("Health: {}", player_health));
-                // Render the health display
-                health_text_box.render(&mut window.canvas, sdl2::pixels::Color::RGB(255, 255, 255))?;
-
                 // Assuming you're using a similar rendering method for the ladder as for other tiles
                 let ladder_rect = sdl2::rect::Rect::new(
                     (ladder_position.0 as i32 * TILE_SIZE as i32) as i32, 
@@ -561,6 +563,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // Implement game over logic here
                     break; // Or transition to a different game state
                 }
+
+                // Render each light onto the light texture
+                window.canvas.with_texture_canvas(&mut darkness_texture, |canvas| {
+                    // Clear the texture with a semi-transparent black for darkness
+                    canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 150));
+                    canvas.clear();
+
+                    // Render each light onto this dark texture
+                    light.render(canvas, &mut light_spot_texture);
+                })?;
+
+                // Set blend mode to Mod for blending the light texture onto the main scene
+                // Now, set the blend mode and render the darkness_texture over the main canvas to achieve the lighting effect
+                window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
+                window.canvas.copy(&darkness_texture, None, None)?;
+                window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
+
+                // Update the health display
+                health_text_box.set_text(format!("Health: {}", player_health));
+                // Render the health display
+                health_text_box.render(&mut window.canvas, sdl2::pixels::Color::RGB(255, 255, 255))?;
             },
         }
  
