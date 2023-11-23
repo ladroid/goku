@@ -1,3 +1,16 @@
+0.1.2
+1. Split one big file two_d.rs into small sub-files (easy improve, debug, etc.)
+2. Make first game
+    - Randomly generated dungeon
+    - Point Light
+    - Randomly spawning enemies
+    - Enemies follow player
+    - Infinite levels
+    - Enemies can attack player
+    - Simple health bar
+3. Fixed bug with AudioPlayer and add example: before there was a problem to play a file
+4. Update a little bit README file
+
 0.1.1 [Quasar Quest]
 1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)
 2. PointLight was improved completely can be used very easily(before there were some problems with PointLight)

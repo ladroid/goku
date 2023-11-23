@@ -432,7 +432,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     // Reset player animation state
                     player.texture_manager_anim.set_animation("idle");
-                    player_health = 100;
                 }
 
                 window.canvas.clear();
