@@ -3,6 +3,9 @@ use rand::Rng;
 use rand::seq::SliceRandom; // For random selection from slices
 #[allow(unused_imports)]
 use sdl2::image::LoadTexture;
+use rodio::{Decoder, OutputStream, Sink};
+use std::fs::File;
+use std::io::BufReader;
 
 struct Enemy<'a> {
     position: nalgebra::Vector2<i32>,
@@ -295,6 +298,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui_layer.add_button(play_button.clone());
     ui_layer.add_button(quit_button.clone());
 
+    let (_stream, stream_handle) = OutputStream::try_default()?;
+    let sink = Sink::try_new(&stream_handle)?;
+
+    // Load and play music (OGG file)
+    let file = File::open(std::path::Path::new("Dragon-Mystery.ogg"))?;
+    let source = Decoder::new(BufReader::new(file))?;
+    sink.append(source);
+    sink.detach(); // Start playing the music in the background
+
     'mainloop: loop {
         match game_state {
             GameState::Menu => {
@@ -303,6 +315,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     handle_menu_event(event, &play_button, &quit_button, &mut game_state);
                 }
                 render_menu(&mut window.canvas, &text_box_title, &play_button, &quit_button, sdl2::pixels::Color::RGB(255, 255, 255))?;
+                
             },
             GameState::Playing => {
                 // Existing game logic goes here
