@@ -216,7 +216,7 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 ## TODO (is prioritised)
 
-* ~~ make finally a separate .rs file instead of one big ~~  
+* ~~make finally a separate .rs file instead of one big~~  
 
 * make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and imgui)
 
@@ -224,7 +224,7 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * add/improve UI system (make possible to add image for buttons)
 
-* ~~ improve lights and shadows ~~
+* ~~improve lights and shadows~~
 
 * draw simple shapes (cirlce, rectangle, triangle, etc.)
 
