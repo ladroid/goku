@@ -10,6 +10,7 @@
     - Simple health bar
 3. Fixed bug with AudioPlayer and add example: before there was a problem to play a file
 4. Update a little bit README file
+5. Separated gui, located in gui folder
 
 0.1.1 [Quasar Quest]
 1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)
