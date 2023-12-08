@@ -3,9 +3,6 @@ use rand::Rng;
 use rand::seq::SliceRandom; // For random selection from slices
 #[allow(unused_imports)]
 use sdl2::image::LoadTexture;
-use rodio::{Decoder, OutputStream, Sink};
-use std::fs::File;
-use std::io::BufReader;
 
 struct Enemy<'a> {
     position: nalgebra::Vector2<i32>,
@@ -298,14 +295,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui_layer.add_button(play_button.clone());
     ui_layer.add_button(quit_button.clone());
 
-    let (_stream, stream_handle) = OutputStream::try_default()?;
-    let sink = Sink::try_new(&stream_handle)?;
+    let _mixer_context = sdl2::mixer::init(sdl2::mixer::InitFlag::OGG).unwrap();
+    sdl2::mixer::open_audio(44100, sdl2::mixer::DEFAULT_FORMAT, sdl2::mixer::DEFAULT_CHANNELS, 1024).unwrap();
+    sdl2::mixer::allocate_channels(4);
 
-    // Load and play music (OGG file)
-    let file = File::open(std::path::Path::new("Dragon-Mystery.ogg"))?;
-    let source = Decoder::new(BufReader::new(file))?;
-    sink.append(source);
-    sink.detach(); // Start playing the music in the background
+    let music = sdl2::mixer::Music::from_file("Dragon-Mystery.ogg").unwrap();
+    sdl2::mixer::Music::set_volume(35);
+    music.play(-1).unwrap(); // -1 for infinite loop
 
     'mainloop: loop {
         match game_state {
@@ -600,6 +596,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
  
         window.canvas.present();
+        ::std::thread::sleep(std::time::Duration::from_millis(16)); // ~60 FPS
     }
     Ok(())
 }
