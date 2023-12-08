@@ -295,13 +295,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui_layer.add_button(play_button.clone());
     ui_layer.add_button(quit_button.clone());
 
-    let _mixer_context = sdl2::mixer::init(sdl2::mixer::InitFlag::OGG).unwrap();
-    sdl2::mixer::open_audio(44100, sdl2::mixer::DEFAULT_FORMAT, sdl2::mixer::DEFAULT_CHANNELS, 1024).unwrap();
-    sdl2::mixer::allocate_channels(4);
-
-    let music = sdl2::mixer::Music::from_file("Dragon-Mystery.ogg").unwrap();
-    sdl2::mixer::Music::set_volume(35);
-    music.play(-1).unwrap(); // -1 for infinite loop
+    let mut audio = two_d::audio::AudioPlayer::new(4);
+    let _music = audio.play(std::path::Path::new("Dragon-Mystery.ogg"), -1, 35);
 
     'mainloop: loop {
         match game_state {
