@@ -249,7 +249,7 @@ ingabe
 
 ### 1. Tetris
 
-Ein Beispiel für den Bau eines Tetris-Spiels finden Sie [hier](examples/tetris_game_example.txt)
+Ein Beispiel für den Bau eines Tetris-Spiels finden Sie [hier](../examples/tetris_game_example.rs)
 
 ### 2. Roguelike-Prototyp (TODO)
 
@@ -263,7 +263,7 @@ Ein Beispiel für den Bau eines Roguelike-Prototyps finden Sie hier -> https://g
 
 ### 4. Seitlich scrollendes Spiel
 
-Ein Beispiel für den Bau eines seitlich scrollenden Prototyps finden Sie [hier](examples/simple_parallax_example.txt)
+Ein Beispiel für den Bau eines seitlich scrollenden Prototyps finden Sie [hier](../examples/simple_parallax_example.rs)
 
 ### 5. Platformer
 
@@ -271,7 +271,7 @@ Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie hier -> https://
 
 ### 6. Einfache Zustände für Feinde festlegen (Verfolgung/Folgen)
 
-Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie [hier](examples/enemy_behaviour.txt)
+Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie [hier](../examples/enemy_behaviour.rs)
 
 ## Japanische Version
 

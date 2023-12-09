@@ -250,7 +250,7 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 ### 1. Tetris
 
-Example of building tetris game can be found [here](examples/tetris_game_example.txt)
+Example of building tetris game can be found [here](examples/tetris_game_example.rs)
 
 ### 2. Roguelike prototype (Prototype)
 
@@ -258,13 +258,13 @@ Example of building roguelike prototype can be found [here](examples/roguelike/R
 
 ### 3. Visual effects
 
-1. Sparks -> simply use a function
-2. Fire -> simply use a function
-3. Rain -> simply use a function
+1. Sparks -> use a function `spawn_particles_sparks` [from here](src/two_d/particle_system.rs)
+2. Fire -> use a function `spawn_particles_fires` [from here](src/two_d/particle_system.rs)
+3. Rain -> use a function `spawn_particles_rain` [from here](src/two_d/particle_system.rs)
 
 ### 4. Side scrolling game
 
-Example of building sie scrolling prototype can be found [here](examples/simple_parallax_example.txt)
+Example of building sie scrolling prototype can be found [here](examples/simple_parallax_example.rs)
 
 ### 5. Platformer
 
@@ -272,7 +272,7 @@ Example of building platformer prototype can be found here -> https://github.com
 
 ### 6. Set simple states for enemy(chasing/following)
 
-Example of building platformer prototype can be found [here](examples/enemy_behaviour.txt)
+Example of building platformer prototype can be found [here](examples/enemy_behaviour.rs)
 
 ## Japanese ver.
 

@@ -249,7 +249,7 @@ Las bibliotecas de desarrollo MSVC proporcionadas por http://libsdl.org/ no incl
 
 ### 1. Tetris
 
-El ejemplo de construcción de un juego de tetris se puede encontrar [aquí](examples/tetris_game_example.txt)
+El ejemplo de construcción de un juego de tetris se puede encontrar [aquí](../examples/tetris_game_example.rs)
 
 ### 2. Prototipo de Roguelike (TODO)
 
@@ -263,7 +263,7 @@ El ejemplo de construcción de un prototipo de Roguelike se puede encontrar aqu�
 
 ### 4. Juego de desplazamiento lateral
 
-El ejemplo de construcción de un prototipo de desplazamiento lateral se puede encontrar [aquí](examples/simple_parallax_example.txt)
+El ejemplo de construcción de un prototipo de desplazamiento lateral se puede encontrar [aquí](../examples/simple_parallax_example.rs)
 
 ### 5. Plataformas
 
@@ -271,7 +271,7 @@ El ejemplo de construcción de un prototipo de juego de plataformas se puede enc
 
 ### 6. Establecer estados simples para enemigos (persecución/seguimiento)
 
-El ejemplo de construcción de un prototipo de juego de plataformas se puede encontrar [aquí](examples/enemy_behaviour.txt)
+El ejemplo de construcción de un prototipo de juego de plataformas se puede encontrar [aquí](../examples/enemy_behaviour.rs)
 
 ## Versión japonesa
 
