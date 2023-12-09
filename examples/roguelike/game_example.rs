@@ -205,7 +205,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
             // Load enemy textures here. This should be adapted to your actual texture loading logic.
             // For example:
-            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("player_anim.png"), 16, 18, 150, 0)?;
+            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("enemy_idle.png"), 16, 18, 150, 0)?;
 
             let enemy = Enemy {
                 position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
@@ -422,7 +422,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for _ in 0..5 {
                         if let Some(spawn_point) = new_spawn_points.choose(&mut rng).cloned() {
                             let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
-                            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("player_anim.png"), 16, 18, 150, 0)?;
+                            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("enemy_idle.png"), 16, 18, 150, 0)?;
 
                             let enemy = Enemy {
                                 position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
