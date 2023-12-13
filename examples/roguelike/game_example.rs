@@ -4,6 +4,12 @@ use rand::seq::SliceRandom; // For random selection from slices
 #[allow(unused_imports)]
 use sdl2::image::LoadTexture;
 
+// Minimap properties
+const MINIMAP_SCALE: f32 = 0.1; // Scale of the minimap compared to the main map
+const MINIMAP_WIDTH: u32 = 800; // Width of the minimap
+const MINIMAP_HEIGHT: u32 = 600; // Height of the minimap
+const TILE_SIZE: i32 = 82;
+
 struct Enemy<'a> {
     position: nalgebra::Vector2<i32>,
     grid_position: (i32, i32), // Add a grid_position to keep track of the enemy's position in grid terms
@@ -165,8 +171,68 @@ fn handle_menu_event(event: sdl2::event::Event, play_button: &two_d::Button, qui
     }
 }
 
+fn render_minimap(
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    tile_map: &two_d::Tile,
+    player_position: (usize, usize),
+    enemies: &[Enemy],
+    minimap_rect: sdl2::rect::Rect,
+) -> Result<(), String> {
+    let tile_size = (82 as f32 * MINIMAP_SCALE) as u32;
+
+    // Draw the minimap background
+    canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+    canvas.fill_rect(minimap_rect)?;
+
+    // Render the tiles
+    for (y, row) in tile_map.tile_map.iter().enumerate() {
+        for (x, &tile) in row.iter().enumerate() {
+            if tile != 0 {
+                let x_pos = minimap_rect.x() + (x as i32 * tile_size as i32);
+                let y_pos = minimap_rect.y() + (y as i32 * tile_size as i32);
+                let tile_rect = sdl2::rect::Rect::new(x_pos, y_pos, tile_size, tile_size);
+
+                // Choose color based on the tile type
+                let color = match tile {
+                    2 => sdl2::pixels::Color::RGB(100, 100, 100), // Wall
+                    3 => sdl2::pixels::Color::RGB(255, 215, 0),  // Ladder
+                    _ => sdl2::pixels::Color::RGB(255, 255, 255),
+                };
+
+                canvas.set_draw_color(color);
+                canvas.fill_rect(tile_rect)?;
+            }
+        }
+    }
+
+    // Render the player
+    let player_rect = sdl2::rect::Rect::new(
+        minimap_rect.x() + (player_position.0 as i32 * tile_size as i32),
+        minimap_rect.y() + (player_position.1 as i32 * tile_size as i32),
+        tile_size,
+        tile_size,
+    );
+    canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 255, 0));
+    canvas.fill_rect(player_rect)?;
+
+    // Render enemies
+    for enemy in enemies {
+        let enemy_rect = sdl2::rect::Rect::new(
+            minimap_rect.x() + (enemy.grid_position.0 as i32 * tile_size as i32),
+            minimap_rect.y() + (enemy.grid_position.1 as i32 * tile_size as i32),
+            tile_size,
+            tile_size,
+        );
+        canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 0, 0));
+        canvas.fill_rect(enemy_rect)?;
+    }
+
+    Ok(())
+}
+
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = two_d::Window::new("My Game", 800, 600)?;
+    let mut window = two_d::Window::new("Whispering Depths", 800, 600)?;
 
     let texture_creator = window.canvas.texture_creator();
 
@@ -174,8 +240,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut input_handler = two_d::InputHandler::new(&window.sdl_context)?;
 
-    // Assuming each tile is 32x32 pixels
-    const TILE_SIZE: i32 = 82;
+    // Assuming each tile is 82x82 pixels
     let mut player_grid_position = (2, 2);  // Grid position (x, y)
 
     let mut player = two_d::GameObject::new(texture_manager, nalgebra::Vector2::new(player_grid_position.0 as i32 * TILE_SIZE as i32, player_grid_position.1 as i32 * TILE_SIZE as i32));
@@ -276,7 +341,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let title_font_size = 36; // Larger font for the title
     let title_font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, title_font_size)?);
-    let title_text = "Rusty Dungeon";
+    let title_text = "Whispering Depths";
     let title_width = 300; // Width of the title box, adjust as needed
     let title_height = 50;  // Height of the title box, adjust as needed
     let title_x = (800 - title_width) / 2; // Center the title
@@ -297,6 +362,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut audio = two_d::audio::AudioPlayer::new(4);
     let _music = audio.play(std::path::Path::new("Dragon-Mystery.ogg"), -1, 35);
+
+    let minimap_rect = sdl2::rect::Rect::new(650, 10, (MINIMAP_WIDTH as f32 * MINIMAP_SCALE) as u32, (MINIMAP_HEIGHT as f32 * MINIMAP_SCALE) as u32);
 
     'mainloop: loop {
         match game_state {
@@ -480,7 +547,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
                         }
                     }
-                }
+                }               
 
                 // Assuming you're using a similar rendering method for the ladder as for other tiles
                 let ladder_rect = sdl2::rect::Rect::new(
@@ -582,6 +649,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
                 window.canvas.copy(&darkness_texture, None, None)?;
                 window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
+
+                // Inside the game loop, under GameState::Playing
+                render_minimap(&mut window.canvas, &tile_map, player_grid_position, &enemies, minimap_rect)?;
 
                 // Update the health display
                 health_text_box.set_text(format!("Health: {}", player_health));
