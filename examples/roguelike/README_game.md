@@ -26,4 +26,4 @@ Source code can be shown [here](/examples/roguelike/game_example.rs)
 Character was taken from [here](https://totuslotus.itch.io/characterpack)
 
 ## Where to play
-The game is located on itch.io (soon will be the link).
+The game is located on [itch.io](https://ladroid.itch.io/whispering-depths).
