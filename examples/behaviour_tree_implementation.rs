@@ -1,6 +1,16 @@
 /*
 * Assets were take from here -> https://pixel-boy.itch.io/ninja-adventure-asset-pack 
 * and https://totuslotus.itch.io/characterpack
+
+Your distribution folder might look like this:
+
+MyGame/
+├── assets/
+│   ├── images/
+│   ├── sounds/
+│   └── ...
+├── src/
+└── Cargo.toml
 */
 
 fn attack_player() -> two_d::BehaviourTreeResult {

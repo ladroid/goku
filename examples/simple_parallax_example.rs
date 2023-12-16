@@ -1,5 +1,15 @@
 /*
 * Assets were take from here -> https://ansimuz.itch.io/sunnyland-tall-forest
+
+Your distribution folder might look like this:
+
+MyGame/
+├── assets/
+│   ├── images/
+│   ├── sounds/
+│   └── ...
+├── src/
+└── Cargo.toml
 */
 
 mod two_d;
