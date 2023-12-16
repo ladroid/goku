@@ -1,3 +1,17 @@
+/*
+* Assets were take from here -> https://ansimuz.itch.io/sunnyland-tall-forest
+
+Your distribution folder might look like this:
+
+MyGame/
+├── assets/
+│   ├── images/
+│   ├── sounds/
+│   └── ...
+├── src/
+└── Cargo.toml
+*/
+
 mod two_d;
 
 pub fn test_parallax() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,9 +29,9 @@ pub fn test_parallax() -> Result<(), Box<dyn std::error::Error>> {
     
     // initialize your texture managers
     let mut texture_manager_1 = TextureManager::new(&texture_creator);
-    texture_manager_1.load_texture(Path::new("E:\\Projects\\RustProj\\GameEngine\\Tall Forest Files\\Layers\\back.png"))?;
+    texture_manager_1.load_texture(Path::new("Tall Forest Files/Layers/back.png"))?;
     let mut texture_manager_2 = TextureManager::new(&texture_creator);
-    texture_manager_2.load_texture(Path::new("E:\\Projects\\RustProj\\GameEngine\\Tall Forest Files\\Layers\\far.png"))?;
+    texture_manager_2.load_texture(Path::new("Tall Forest Files/Layers/far.png"))?;
     
     // initialize your parallax layers
     let parallax_layer_1 = ParallaxLayer::new(texture_manager_1, 200.0);

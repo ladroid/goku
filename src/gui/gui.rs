@@ -360,9 +360,21 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     // Write the provided code to the main.rs file in the new cargo project
     std::fs::write(format!("{}/src/main.rs", &temp_dir), code)?;
-
-    // Copy the global classes to the new cargo project
-    std::fs::copy("E:\\Projects\\RustProj\\GameEngine\\goku\\src\\two_d.rs", format!("{}/src/two_d.rs", &temp_dir))?;
+    
+    // Create the two_d directory in the temporary project
+    std::fs::copy("src/two_d.rs", format!("{}/src/two_d.rs", &temp_dir))?;
+    let two_d_dir = format!("{}/src/two_d", &temp_dir);
+    std::fs::create_dir_all(&two_d_dir)?;
+    // Copy all files from the original two_d directory to the temporary project's two_d directory
+    let original_two_d_path = std::env::current_dir()?.join("src").join("two_d");
+    for entry in std::fs::read_dir(original_two_d_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            let filename = path.file_name().ok_or("Failed to get file name")?.to_owned();
+            std::fs::copy(&path, format!("{}/{}", two_d_dir, filename.to_string_lossy()))?;
+        }
+    }
 
     // Append the required dependencies to Cargo.toml
     let mut cargo_toml = std::fs::read_to_string(format!("{}/Cargo.toml", &temp_dir))?;
@@ -421,7 +433,7 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // 1) Copy the Emscripten SDK directory to temp_dir
-    let source_path = std::path::PathBuf::from("E:\\Projects\\RustProj\\GameEngine\\goku\\emsdk");
+    let source_path = std::path::PathBuf::from("emsdk/");
     let mut destination_path = temp_dir.clone();
     destination_path.push("emsdk");
 
@@ -475,13 +487,13 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
         return Err("Failed to run Emscripten".into());
     }
 
-    let main_rs_path = format!("{}\\src\\main.rs", &temp_dir.to_string_lossy());
+    let main_rs_path = format!("{}/src/main.rs", &temp_dir.to_string_lossy());
     println!("Checking if path exists: {}", &main_rs_path);
     if !std::path::Path::new(&main_rs_path).exists() {
         println!("Path {} does not exist.", &main_rs_path);
     }
 
-    let two_d_path = "E:\\Projects\\RustProj\\GameEngine\\goku\\src\\two_d.rs";
+    let two_d_path = "/src/two_d.rs";
     println!("Checking if path exists: {}", &two_d_path);
     if !std::path::Path::new(two_d_path).exists() {
         println!("Path {} does not exist.", &two_d_path);
@@ -493,7 +505,7 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => println!("Failed to write to {}. Error: {:?}", &main_rs_path, e),
     }
     
-    let destination_two_d_path = format!("{}\\src\\two_d.rs", &temp_dir.to_string_lossy());
+    let destination_two_d_path = format!("{}/src/two_d.rs", &temp_dir.to_string_lossy());
     // Copy the global classes to the new cargo project
     match std::fs::copy(two_d_path, &destination_two_d_path) {
         Ok(_) => println!("Successfully copied to {}", &destination_two_d_path),
