@@ -106,6 +106,8 @@ pub struct State {
     clipboard: Option<ClipboardContext>,
     #[serde(skip)]
     exit_requested: bool,
+    #[serde(skip)]
+    window_name: String,
 }
 
 impl State {
@@ -138,6 +140,7 @@ impl State {
             search_results: Vec::new(),
             clipboard: ClipboardContext::new().ok(),
             exit_requested: false,
+            window_name: "".to_string(),
         }
     }
 
@@ -1007,6 +1010,13 @@ pub fn launcher() {
         .position(control_panel_position, imgui::Condition::Always)
         .build(|| {
             match &state.selected_component {
+                Some(component) if component == "Scene" => {
+                    ui.input_text("Window Name", &mut state.window_name).build();
+                    if ui.button("OK") {
+                        println!("Window name set to: {}", state.window_name);
+                        // You can add additional logic if needed
+                    }
+                },
                 Some(component) if component == "GameObject" => {
                     for (idx, pos) in texture_pos.iter_mut().enumerate() {
                         ui.text(format!("Texture {} position X:", idx + 1));
@@ -1211,20 +1221,21 @@ pub fn launcher() {
 }
 
 fn generate_template(state: &mut State) {
-    let mut content = String::from(r#"
+    let window_title = &state.window_name;
+    let mut content = format!(r#"
 mod two_d;
 use nalgebra::Vector2;
 use std::path::Path;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = Window::new("My Game", 800, 600)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {{
+    let mut window = Window::new("{}", 800, 600)?;
 
-    let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
+    let last_frame_time = unsafe {{ sdl2::sys::SDL_GetTicks() }};
     let mut current_frame_time;
     let mut delta_time;
 
     let texture_creator = window.canvas.texture_creator();
-"#);
+"#, window_title);
 
     // Create a counter for game objects and their textures
     let mut game_object_counter = 1;
