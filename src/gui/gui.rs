@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
+use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Component {
@@ -56,11 +57,14 @@ impl Terminal {
         }
     }
 
-    fn log(&mut self, message: &str) {
+    // Use a generic function to accept format arguments
+    fn log<T: Display>(&mut self, message: T) {
         if self.content.len() >= self.max_lines {
-            //self.content.remove(0);
+            // Optional: implement logic to remove oldest lines
+            // self.content.remove(0);
         }
-        self.content.push(message.to_string());
+        // Format the message and push it to the content
+        self.content.push(format!("{}", message));
     }
 
     fn display(&self, ui: &imgui::Ui) {
@@ -536,38 +540,6 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     let web_toml_path = temp_dir.join("Web.toml");
     std::fs::write(&web_toml_path, web_toml_content)?;
 
-    // let ten_millis = std::time::Duration::from_secs(120);
-    // std::thread::sleep(ten_millis);
-    // let output = std::process::Command::new("emsdk").current_dir(&temp_dir).output()?;
-    // if !output.status.success() {
-    //     let err_msg = format!("Failed to execute emsdk_env.bat. Output: {}\nError: {}", 
-    //                             String::from_utf8_lossy(&output.stdout), 
-    //                             String::from_utf8_lossy(&output.stderr));
-    //     return Err(err_msg.into());
-    // }
-    
-    // let emsdk_output_str = String::from_utf8_lossy(&output.stdout);
-    // if !emsdk_output_str.contains("Missing command; Type 'emsdk help' to get a list of commands.") {
-    //     return Err("Unexpected emsdk output".into());
-    // }
-
-    // println!("OK");
-    // let ten_millis = std::time::Duration::from_secs(10);
-    // std::thread::sleep(ten_millis);
-
-    // Build the new cargo project
-    // let output = std::process::Command::new("cargo")
-    //     .arg("web")
-    //     .arg("build")
-    //     .arg("--target")
-    //     .arg("wasm32-unknown-emscripten")
-    //     .current_dir(&temp_dir)
-    //     .output()?;
-    // println!("AAA {:?}", output);
-    // if !output.status.success() {
-    //     return Err("Failed to compile the code".into());
-    // }
-
     // If everything was successful, print the output
     println!("Output:\n{}", String::from_utf8_lossy(&output.stdout));
 
@@ -730,6 +702,11 @@ pub fn launcher() {
     imgui.set_ini_filename(None);
     imgui.set_log_filename(None);
 
+    // Enable docking
+    let io = imgui.io_mut();
+    io.config_flags |= imgui::ConfigFlags::DOCKING_ENABLE; // Enable Docking
+    io.config_flags |= imgui::ConfigFlags::VIEWPORTS_ENABLE; // Enable Multi-Viewport / Platform Windows
+
     /* setup platform and renderer, and fonts to imgui */
     let fonts = imgui.fonts();
     let font_data = include_bytes!("ARIALUNI.TTF");
@@ -786,11 +763,6 @@ pub fn launcher() {
             /* pass all events to imgui platform */
             platform.handle_event(&mut imgui, &event);
 
-            // if let Event::Quit { .. } = event {
-            //     state.canvas_present = true;
-            //     break 'main;
-            // }
-
             match event {
                 Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Up), .. } => {
                     texture_pos[0].1 -= 5.0; // Move up
@@ -846,7 +818,7 @@ pub fn launcher() {
                             state.terminal.log("Project saved");
                         } else {
                             eprintln!("Failed to save project to {:?}", path);
-                            state.terminal.log("Failed to save project");
+                            state.terminal.log(format!("Failed to save project to {:?}", path));
                         }
                     }
                 }
@@ -933,9 +905,9 @@ pub fn launcher() {
                 if ui.menu_item(state.translate("Text Editor")) {  // New menu item
                     state.open_text_editor = !state.open_text_editor;  // Toggle text editor open/close
                 }
-                if ui.menu_item(state.translate("Terminal")) {
-                    println!("Terminal");
-                    state.terminal.log("Terminal");
+                if ui.menu_item(state.translate("Console")) {
+                    println!("Console");
+                    state.terminal.log("Console");
                 }
                 if ui.menu_item("Tile Editor") {
                     println!("Tile Editor");
@@ -952,28 +924,28 @@ pub fn launcher() {
                             },
                             Err(e) => { 
                                 println!("Execution failed: {}", e);
-                                state.terminal.log("Execution failed:");
+                                state.terminal.log(format!("Execution failed: {}", e));
                             },
                         }
                     }
-                    if ui.menu_item("Windows") {
-                    }
-                    if ui.menu_item("Mac OS") {
-                    }
-                    if ui.menu_item("Linux") {
-                    }
-                    if ui.menu_item("Android") {
-                    }
+                    // if ui.menu_item("Windows") {
+                    // }
+                    // if ui.menu_item("Mac OS") {
+                    // }
+                    // if ui.menu_item("Linux") {
+                    // }
+                    // if ui.menu_item("Android") {
+                    // }
                 });
                 if ui.menu_item(state.translate("Run")) {
                     match execute_code(&state.text_editor_content) {
                         Ok(_) => {
                             println!("Execution successful!");
-                            state.terminal.log("Open ok");
+                            state.terminal.log("Execution successful!");
                         },
                         Err(e) => {
                             println!("Execution failed: {}", e);
-                            state.terminal.log("Open ok");
+                            state.terminal.log(format!("Execution failed: {}", e));
                         },
                     }
                 }
@@ -1006,6 +978,7 @@ pub fn launcher() {
         let control_panel_position: [f32; 2] = [window_width as f32 - control_panel_width, 24.0];
         /* create imgui UI here */
         ui.window("Inspector")
+        .flags(imgui::WindowFlags::NO_COLLAPSE | imgui::WindowFlags::NO_RESIZE)
         .size([300.0, window_height as f32 - 200.0], imgui::Condition::Always)
         .position(control_panel_position, imgui::Condition::Always)
         .build(|| {
@@ -1060,21 +1033,11 @@ pub fn launcher() {
                 Some(component) => ui.text(component),
                 None => ui.text("No component selected"),
             }
-        });
-
-//         if let (Some(gameobject_pos), Some(texture_path)) = (&state.gameobject_position, &state.texture_path) {
-//             state.text_editor_content = format!("
-// let mut window = Window::new(\"My Game\", 800, 600)?;
-// // ... other default template code ...
-
-// let mut player = GameObject::new(texture_manager, Vector2::new({}, {}));
-// player.load_texture(Path::new(\"{}\"), 30, 30, 150)?;
-// // ... other default template code ...
-//             ", gameobject_pos.0, gameobject_pos.1, texture_path);
-//         }        
+        });       
 
         let (_, window_height) = canvas.window().size();
         ui.window("Components")
+        .flags(imgui::WindowFlags::NO_COLLAPSE | imgui::WindowFlags::NO_RESIZE)
         .size([300.0, window_height as f32 - 200.0], imgui::Condition::Always)
         .position([0.0, 24.0], imgui::Condition::Always)
         .build(|| {
