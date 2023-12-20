@@ -15,6 +15,7 @@ use std::io::Write;
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 use std::fmt::Display;
+use chrono::{DateTime, Utc};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Component {
@@ -43,9 +44,45 @@ impl Default for TextureComponent {
     }
 }
 
+#[derive(PartialEq)]
+enum MessageType {
+    Info,
+    Error,
+}
+
+struct LogMessage {
+    timestamp: DateTime<Utc>,
+    message_type: MessageType,
+    content: String,
+}
+
+impl LogMessage {
+    fn new(message_type: MessageType, content: String) -> Self {
+        let timestamp = Utc::now();  // Using chrono to get the current time
+
+        Self {
+            timestamp,
+            message_type,
+            content,
+        }
+    }
+
+    fn to_string(&self) -> String {
+        let type_str = match self.message_type {
+            MessageType::Info => "[INFO]",
+            MessageType::Error => "[ERROR]",
+        };
+
+        // Format the timestamp into a readable string
+        let formatted_timestamp = self.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
+
+        format!("{} - {} {}", formatted_timestamp, type_str, self.content)
+    }
+}
+
 #[derive(Default)]
 struct Terminal {
-    content: Vec<String>,
+    content: Vec<LogMessage>,
     max_lines: usize,
 }
 
@@ -56,20 +93,34 @@ impl Terminal {
             max_lines,
         }
     }
-
-    // Use a generic function to accept format arguments
+    // Updated methods to handle LogMessage...
     fn log<T: Display>(&mut self, message: T) {
-        if self.content.len() >= self.max_lines {
-            // Optional: implement logic to remove oldest lines
-            // self.content.remove(0);
-        }
-        // Format the message and push it to the content
-        self.content.push(format!("{}", message));
+        self.add_message(MessageType::Info, format!("{}", message));
     }
 
-    fn display(&self, ui: &imgui::Ui) {
-        for line in &self.content {
-            ui.text(line);
+    fn log_error<T: Display>(&mut self, message: T) {
+        self.add_message(MessageType::Error, format!("{}", message));
+    }
+
+    fn add_message(&mut self, message_type: MessageType, content: String) {
+        if self.content.len() >= self.max_lines {
+            self.content.remove(0);
+        }
+        self.content.push(LogMessage::new(message_type, content));
+    }
+
+    fn display(&self, ui: &imgui::Ui, only_errors: bool) {
+        for message in &self.content {
+            if only_errors && message.message_type != MessageType::Error {
+                continue; // Skip non-error messages if only_errors is true
+            }
+
+            let text = message.to_string();
+            let color = match message.message_type {
+                MessageType::Info => [0.0, 1.0, 0.0, 1.0], // Green for info
+                MessageType::Error => [1.0, 0.0, 0.0, 1.0], // Red for error
+            };
+            ui.text_colored(color, &text);
         }
     }
 }
@@ -818,7 +869,7 @@ pub fn launcher() {
                             state.terminal.log("Project saved");
                         } else {
                             eprintln!("Failed to save project to {:?}", path);
-                            state.terminal.log(format!("Failed to save project to {:?}", path));
+                            state.terminal.log_error(format!("Failed to save project to {:?}", path));
                         }
                     }
                 }
@@ -924,7 +975,7 @@ pub fn launcher() {
                             },
                             Err(e) => { 
                                 println!("Execution failed: {}", e);
-                                state.terminal.log(format!("Execution failed: {}", e));
+                                state.terminal.log_error(format!("Execution failed: {}", e));
                             },
                         }
                     }
@@ -945,7 +996,7 @@ pub fn launcher() {
                         },
                         Err(e) => {
                             println!("Execution failed: {}", e);
-                            state.terminal.log(format!("Execution failed: {}", e));
+                            state.terminal.log_error(format!("Execution failed: {}", e));
                         },
                     }
                 }
@@ -979,7 +1030,7 @@ pub fn launcher() {
         /* create imgui UI here */
         ui.window("Inspector")
         .flags(imgui::WindowFlags::NO_COLLAPSE | imgui::WindowFlags::NO_RESIZE)
-        .size([300.0, window_height as f32 - 200.0], imgui::Condition::Always)
+        .size([300.0, window_height as f32 - 223.0], imgui::Condition::Always)
         .position(control_panel_position, imgui::Condition::Always)
         .build(|| {
             match &state.selected_component {
@@ -987,6 +1038,7 @@ pub fn launcher() {
                     ui.input_text("Window Name", &mut state.window_name).build();
                     if ui.button("OK") {
                         println!("Window name set to: {}", state.window_name);
+                        state.terminal.log(format!("Window name set to: {}", state.window_name));
                         // You can add additional logic if needed
                     }
                 },
@@ -1015,7 +1067,7 @@ pub fn launcher() {
                             state.textures.push(TextureComponent { path: file_path });
                         } else {
                             println!("No file chosen");
-                            state.terminal.log("No file chosen");
+                            state.terminal.log_error("No file chosen");
                         }
                     }
                     
@@ -1038,7 +1090,7 @@ pub fn launcher() {
         let (_, window_height) = canvas.window().size();
         ui.window("Components")
         .flags(imgui::WindowFlags::NO_COLLAPSE | imgui::WindowFlags::NO_RESIZE)
-        .size([300.0, window_height as f32 - 200.0], imgui::Condition::Always)
+        .size([300.0, window_height as f32 - 223.0], imgui::Condition::Always)
         .position([0.0, 24.0], imgui::Condition::Always)
         .build(|| {
             ui.text("Add component:");
@@ -1083,12 +1135,13 @@ pub fn launcher() {
           .build(|| {
               if let Some(tab_bar) = ui.tab_bar("##tabbar") {
                   if ui.tab_item("Log").is_some() {
-                      // Terminal UI code
-                      state.terminal.display(&ui);
-                      // Add more logic as needed for the terminal content
+                    // Terminal UI code
+                    state.terminal.display(&ui, false);
+                    // Add more logic as needed for the terminal content
                   }
                   if ui.tab_item("Problems").is_some() {
                     // Terminal UI code
+                    state.terminal.display(&ui, true);
                     // Add more logic as needed for the terminal content
                 }
                   tab_bar.end();

@@ -18,6 +18,7 @@ rfd = "0.11.3"
 rand = "0.8.5"
 glow = "0.12.2"
 webbrowser = "0.8.11"
+chrono = "0.4.31"
 clipboard = "0.5.0"
 
 [dependencies.sdl2]
