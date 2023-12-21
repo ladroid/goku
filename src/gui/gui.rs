@@ -703,7 +703,7 @@ pub fn launcher() {
     let mut texture_scale: f32 = 1.0;
 
     let mut state = State::new();
-    if let Err(e) = state.load_translations("E:\\Projects\\RustProj\\GameEngine\\goku\\src\\gui\\translation.json") {
+    if let Err(e) = state.load_translations("src/gui/translation.json") {
         state.terminal.log_error(format!("Failed to load translations: {}", e));
         // handle error appropriately
     }
