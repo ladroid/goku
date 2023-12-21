@@ -126,6 +126,12 @@ impl Terminal {
 }
 
 #[derive(Serialize, Deserialize)]
+struct TranslationRequest {
+    original_text: String,
+    translated_text: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct State {
     selected_component: Option<String>,
     components: Vec<Component>,
@@ -163,6 +169,8 @@ pub struct State {
     exit_requested: bool,
     #[serde(skip)]
     window_name: String,
+    #[serde(skip)]
+    translations: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
 }
 
 impl State {
@@ -196,123 +204,23 @@ impl State {
             clipboard: ClipboardContext::new().ok(),
             exit_requested: false,
             window_name: "".to_string(),
+            translations: std::collections::HashMap::new(),
         }
     }
 
-    // not optimized, not efficient (need JSON file or something like that)
+    fn load_translations(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let file = std::fs::File::open(path)?;
+        self.translations = serde_json::from_reader(file)?;
+        Ok(())
+    }
+
     fn translate(&self, text: &str) -> String {
-        if self.general_settings.language == "Français" {
-            match text {
-                "File" => "Fichier".to_string(),
-                "Open" => "Ouvrir".to_string(),
-                "Save" => "Sauvegarder".to_string(),
-                "Save As..." => "Enregistrer sous...".to_string(),
-                "Preferences" => "Préférences".to_string(),
-                "Exit" => "Quitter".to_string(),
-                "Edit" => "Modifier".to_string(),
-                "Undo" => "Annuler".to_string(),
-                "Redo" => "Rétablir".to_string(),
-                "Cut" => "Couper".to_string(),
-                "Copy" => "Copier".to_string(),
-                "Paste" => "Coller".to_string(),
-                "View" => "Affichage".to_string(),
-                "Search" => "Rechercher".to_string(),
-                "Text Editor" => "Éditeur de texte".to_string(),
-                "Terminal" => "Terminal".to_string(),
-                "Tools" => "Outils".to_string(),
-                "Build" => "Construire".to_string(),
-                "Run" => "Exécuter".to_string(),
-                "Help" => "Aide".to_string(),
-                "Documentation" => "Documentation".to_string(),
-                "About" => "À propos".to_string(),
-                "General settings..." => "Paramètres généraux...".to_string(),
-                _ => text.to_string(), // Default to English if no translation is found
+        if let Some(language_map) = self.translations.get(&self.general_settings.language) {
+            if let Some(translated) = language_map.get(text) {
+                return translated.clone();
             }
         }
-        else if self.general_settings.language == "Deutsch" {
-            match text {
-                "File" => "Datei".to_string(),
-                "Open" => "Öffnen".to_string(),
-                "Save" => "Speichern".to_string(),
-                "Save As..." => "Speichern unter...".to_string(),
-                "Preferences" => "Einstellungen".to_string(),
-                "Exit" => "Beenden".to_string(),
-                "Edit" => "Bearbeiten".to_string(),
-                "Undo" => "Rückgängig".to_string(),
-                "Redo" => "Wiederholen".to_string(),
-                "Cut" => "Ausschneiden".to_string(),
-                "Copy" => "Kopieren".to_string(),
-                "Paste" => "Einfügen".to_string(),
-                "View" => "Ansicht".to_string(),
-                "Search" => "Suchen".to_string(),
-                "Text Editor" => "Texteditor".to_string(),
-                "Terminal" => "Terminal".to_string(),
-                "Tools" => "Werkzeuge".to_string(),
-                "Build" => "Erstellen".to_string(),
-                "Run" => "Ausführen".to_string(),
-                "Help" => "Hilfe".to_string(),
-                "Documentation" => "Dokumentation".to_string(),
-                "About" => "Über".to_string(),
-                "General settings..." => "Allgemeine Einstellungen...".to_string(),
-               _ => text.to_string(), 
-            }
-        } else if self.general_settings.language == "Español" {
-            match text {
-                "File" => "Archivo".to_string(),
-                "Open" => "Abrir".to_string(),
-                "Save" => "Guardar".to_string(),
-                "Save As..." => "Guardar como...".to_string(),
-                "Preferences" => "Preferencias".to_string(),
-                "Exit" => "Salir".to_string(),
-                "Edit" => "Editar".to_string(),
-                "Undo" => "Deshacer".to_string(),
-                "Redo" => "Rehacer".to_string(),
-                "Cut" => "Cortar".to_string(),
-                "Copy" => "Copiar".to_string(),
-                "Paste" => "Pegar".to_string(),
-                "View" => "Ver".to_string(),
-                "Search" => "Buscar".to_string(),
-                "Text Editor" => "Editor de texto".to_string(),
-                "Terminal" => "Terminal".to_string(),
-                "Tools" => "Herramientas".to_string(),
-                "Build" => "Compilar".to_string(),
-                "Run" => "Ejecutar".to_string(),
-                "Help" => "Ayuda".to_string(),
-                "Documentation" => "Documentación".to_string(),
-                "About" => "Acerca de".to_string(),
-                "General settings..." => "Configuración general...".to_string(),
-                _ => text.to_string(),
-            }
-        } else if self.general_settings.language == "日本語" {
-            match text {
-                "File" => "ファイル".to_string(),
-                "Open" => "開く".to_string(),
-                "Save" => "保存".to_string(),
-                "Save As..." => "名前を付けて保存...".to_string(),
-                "Preferences" => "設定".to_string(),
-                "Exit" => "終了".to_string(),
-                "Edit" => "編集".to_string(),
-                "Undo" => "元に戻す".to_string(),
-                "Redo" => "やり直し".to_string(),
-                "Cut" => "切り取り".to_string(),
-                "Copy" => "コピー".to_string(),
-                "Paste" => "貼り付け".to_string(),
-                "View" => "表示".to_string(),
-                "Search" => "検索".to_string(),
-                "Text Editor" => "テキストエディタ".to_string(),
-                "Terminal" => "ターミナル".to_string(),
-                "Tools" => "ツール".to_string(),
-                "Build" => "ビルド".to_string(),
-                "Run" => "実行".to_string(),
-                "Help" => "ヘルプ".to_string(),
-                "Documentation" => "ドキュメント".to_string(),
-                "About" => "このプログラムについて".to_string(),
-                "General settings..." => "一般設定...".to_string(),
-                _ => text.to_string(),
-            }
-        } else {
-            text.to_string()
-        }
+        text.to_string()
     }
 
     fn search_for_next(&mut self) {
@@ -795,6 +703,10 @@ pub fn launcher() {
     let mut texture_scale: f32 = 1.0;
 
     let mut state = State::new();
+    if let Err(e) = state.load_translations("E:\\Projects\\RustProj\\GameEngine\\goku\\src\\gui\\translation.json") {
+        state.terminal.log_error(format!("Failed to load translations: {}", e));
+        // handle error appropriately
+    }
 
     /* start main loop */
     let mut event_pump = sdl.event_pump().unwrap();
