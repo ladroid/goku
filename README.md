@@ -228,7 +228,7 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * draw simple shapes (cirlce, rectangle, triangle, etc.)
 
-* tabs
+* ~~tabs~~
 
 * profiler improve
 

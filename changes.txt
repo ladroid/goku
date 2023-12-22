@@ -13,6 +13,8 @@
 5. Separated gui, located in gui folder
 6. Docking - drag&drop components
 7. Logging for GUI: Now in logs all message are visible and on Problems tab item only errors. Successful message are highlited green and errors - red
+8. GUI modify transaltion to other languages: Parsing from JSON translation to other languages since it is currently hardcoded `translate` function
+9. GUI: Modify execute_code and execute_code_web function was modified for Linux and Windows
 
 0.1.1 [Quasar Quest]
 1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)

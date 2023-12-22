@@ -309,56 +309,45 @@ pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, 
 }
 
 pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let temp_dir = format!("{}/temp_cargo_project", std::env::temp_dir().to_string_lossy());
-    
+    let temp_dir = std::env::temp_dir().join("temp_cargo_project");
+
     // Create a new cargo project if it doesn't exist
-    if !std::path::Path::new(&temp_dir).exists() {
-        let output = std::process::Command::new("cargo")
+    if !temp_dir.exists() {
+        let status = std::process::Command::new("cargo")
             .arg("new")
             .arg("--bin")
             .arg(&temp_dir)
-            .output()?;
+            .status()?;
 
-        if !output.status.success() {
+        if !status.success() {
             return Err("Failed to create a new cargo project".into());
         }
     }
 
     // Write the provided code to the main.rs file in the new cargo project
-    std::fs::write(format!("{}/src/main.rs", &temp_dir), code)?;
-    
-    // Create the two_d directory in the temporary project
-    std::fs::copy("src/two_d.rs", format!("{}/src/two_d.rs", &temp_dir))?;
-    let two_d_dir = format!("{}/src/two_d", &temp_dir);
-    std::fs::create_dir_all(&two_d_dir)?;
-    // Copy all files from the original two_d directory to the temporary project's two_d directory
-    let original_two_d_path = std::env::current_dir()?.join("src").join("two_d");
-    for entry in std::fs::read_dir(original_two_d_path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() {
-            let filename = path.file_name().ok_or("Failed to get file name")?.to_owned();
-            std::fs::copy(&path, format!("{}/{}", two_d_dir, filename.to_string_lossy()))?;
-        }
-    }
+    let main_rs = temp_dir.join("src").join("main.rs");
+    std::fs::write(&main_rs, code)?;
+
+    // Handle two_d module copying
+    handle_two_d_module(&temp_dir)?;
 
     // Append the required dependencies to Cargo.toml
-    let mut cargo_toml = std::fs::read_to_string(format!("{}/Cargo.toml", &temp_dir))?;
-    cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
-    cargo_toml.push_str("[dependencies.sdl2]\nversion = \"0.35\"\ndefault-features = false\nfeatures = [\"image\", \"ttf\", \"mixer\"]\n"); 
-    std::fs::write(format!("{}/Cargo.toml", &temp_dir), cargo_toml)?;
+    let cargo_toml_path = temp_dir.join("Cargo.toml");
+    let mut cargo_toml = std::fs::read_to_string(&cargo_toml_path)?;
+    cargo_toml.push_str("\n[dependencies]\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
+    cargo_toml.push_str("sdl2 = { version = \"0.35\", default-features = false, features = [\"image\", \"ttf\", \"mixer\"] }\n"); 
+    std::fs::write(&cargo_toml_path, cargo_toml)?;
 
-    // Build the new cargo project
-    let output = std::process::Command::new("cargo")
+    // Build and run the new cargo project
+    let status = std::process::Command::new("cargo")
         .arg("build")
         .current_dir(&temp_dir)
-        .output()?;
+        .status()?;
 
-    if !output.status.success() {
+    if !status.success() {
         return Err("Failed to compile the code".into());
     }
 
-    // Run the new cargo project
     let output = std::process::Command::new("cargo")
         .arg("run")
         .current_dir(&temp_dir)
@@ -377,6 +366,26 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn handle_two_d_module(temp_dir: &std::path::PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    let two_d_src = Path::new("src/two_d.rs");
+    let two_d_dest = temp_dir.join("src").join("two_d.rs");
+    std::fs::copy(&two_d_src, &two_d_dest)?;
+
+    let two_d_dir = temp_dir.join("src").join("two_d");
+    std::fs::create_dir_all(&two_d_dir)?;
+
+    let original_two_d_path = std::env::current_dir()?.join("src").join("two_d");
+    for entry in std::fs::read_dir(original_two_d_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            let filename = path.file_name().ok_or("Failed to get file name")?.to_owned();
+            std::fs::copy(&path, two_d_dir.join(filename))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut temp_dir = std::env::temp_dir();
     temp_dir.push("temp_cargo_project");
@@ -384,126 +393,104 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Ensure temp_dir exists
     if !temp_dir.exists() {
         // Create a new cargo project in the temp_dir
-        let output = std::process::Command::new("cargo")
-        .arg("new")
-        .arg("--bin")
-        .arg(&temp_dir)
-        .output()?;
+        let status = std::process::Command::new("cargo")
+            .arg("new")
+            .arg("--bin")
+            .arg(&temp_dir)
+            .status()?;
 
-        if !output.status.success() {
-            let err_msg = format!("Failed to create a new cargo project. Output: {}\nError: {}", 
-                                    String::from_utf8_lossy(&output.stdout), 
-                                    String::from_utf8_lossy(&output.stderr));
-            return Err(err_msg.into());
+        if !status.success() {
+            return Err("Failed to create a new cargo project".into());
         }
     }
 
-    // 1) Copy the Emscripten SDK directory to temp_dir
+    // Copy the Emscripten SDK directory to temp_dir
     let source_path = std::path::PathBuf::from("emsdk/");
-    let mut destination_path = temp_dir.clone();
-    destination_path.push("emsdk");
+    let destination_path = temp_dir.join("emsdk");
 
-    // Debug printing
-    println!("Source Path: {:?}", source_path);
-    println!("Destination Path: {:?}", destination_path);
+    // Copy directory contents
+    copy_directory(&source_path, &destination_path)?;
 
-    // Validate paths
-    if !source_path.exists() {
-        return Err(format!("Source path '{:?}' does not exist.", source_path).into());
-    }
-
-    let output = std::process::Command::new("xcopy")
-        .arg(format!("{}\\", source_path.display())) // Using display to convert PathBuf to string
-        .arg(format!("{}\\", destination_path.display()))
-        .arg("/E")  // To copy directories and subdirectories, including empty ones
-        .output()?;
-
-    if !output.status.success() {
-        let err_msg = format!("Failed to copy the Emscripten SDK directory. Error: {}",
-                            String::from_utf8_lossy(&output.stderr));
-        return Err(err_msg.into());
-    } else {
-        println!("Success");
-    }
-
-    // 2) and 3) Install Emscripten in the emsdk directory within temp_dir
-    let emsdk_env_cmd_path = destination_path.join("emsdk_env.bat");
-    if !emsdk_env_cmd_path.exists() {
-        return Err(format!("File does not exist: {:?}", emsdk_env_cmd_path).into());
-    }
-    let output = std::process::Command::new("cmd")
-        .arg("/C")
-        .arg(&emsdk_env_cmd_path)
-        .output()?;
-    if !output.status.success() {
-        return Err("Failed to execute emsdk_env.bat".into());
-    }
-
+    // Install Emscripten in the emsdk directory within temp_dir
+    let emsdk_env_cmd_path = destination_path.join(if cfg!(target_os = "windows") { "emsdk_env.bat" } else { "emsdk_env.sh" });
     let emsdk_cmd_path = destination_path.join("emsdk");
-    if !emsdk_cmd_path.exists() {
-        return Err(format!("File does not exist: {:?}", emsdk_cmd_path).into());
-    }
-    let output = std::process::Command::new("cmd")
-        .arg("/C")
-        .arg(&emsdk_cmd_path)
-        .arg("activate")
-        .arg("latest")
-        .output()?;
-    if !output.status.success() {
-        return Err("Failed to run Emscripten".into());
-    }
 
-    let main_rs_path = format!("{}/src/main.rs", &temp_dir.to_string_lossy());
-    println!("Checking if path exists: {}", &main_rs_path);
-    if !std::path::Path::new(&main_rs_path).exists() {
-        println!("Path {} does not exist.", &main_rs_path);
-    }
+    execute_command(if cfg!(target_os = "windows") { "cmd" } else { "sh" }, &emsdk_env_cmd_path)?;
+    execute_command(if cfg!(target_os = "windows") { "cmd" } else { "sh" }, &emsdk_cmd_path.join("activate").join("latest"))?;
 
-    let two_d_path = "/src/two_d.rs";
-    println!("Checking if path exists: {}", &two_d_path);
-    if !std::path::Path::new(two_d_path).exists() {
-        println!("Path {} does not exist.", &two_d_path);
-    }
+    // Write code to main.rs
+    let main_rs_path = temp_dir.join("src").join("main.rs");
+    std::fs::write(&main_rs_path, code)?;
 
-    // Write the provided code to the main.rs file in the new cargo project
-    match std::fs::write(&main_rs_path, code) {
-        Ok(_) => println!("Successfully wrote to {}", &main_rs_path),
-        Err(e) => println!("Failed to write to {}. Error: {:?}", &main_rs_path, e),
-    }
-    
-    let destination_two_d_path = format!("{}/src/two_d.rs", &temp_dir.to_string_lossy());
-    // Copy the global classes to the new cargo project
-    match std::fs::copy(two_d_path, &destination_two_d_path) {
-        Ok(_) => println!("Successfully copied to {}", &destination_two_d_path),
-        Err(e) => println!("Failed to copy to {}. Error: {:?}", &destination_two_d_path, e),
-    }
+    // Copy two_d.rs
+    let two_d_path = Path::new("src/two_d.rs");
+    let destination_two_d_path = temp_dir.join("src").join("two_d.rs");
+    std::fs::copy(two_d_path, &destination_two_d_path)?;
 
-    // Append the required dependencies to Cargo.toml
-    let mut cargo_toml = std::fs::read_to_string(format!("{}/Cargo.toml", &temp_dir.to_string_lossy()))?;
-    cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
-    cargo_toml.push_str("[dependencies.sdl2]\nversion = \"0.35\"\ndefault-features = false\nfeatures = [\"image\", \"ttf\", \"mixer\"]\n"); 
-    std::fs::write(format!("{}/Cargo.toml", &temp_dir.to_string_lossy()), cargo_toml)?;
+    // Append dependencies to Cargo.toml
+    let cargo_toml_path = temp_dir.join("Cargo.toml");
+    append_dependencies_to_cargo_toml(&cargo_toml_path)?;
 
-    // Create Web.toml content
-    let web_toml_content = r#"
-    default-target = "wasm32-unknown-emscripten"
-
-    [target.emscripten]
-    link-args = [
-        "-s", "WASM=1",
-        "-s", "USE_SDL=2",
-    ]
-    "#;
-
-    // Write the content to Web.toml in temp_dir
+    // Create and write Web.toml
     let web_toml_path = temp_dir.join("Web.toml");
-    std::fs::write(&web_toml_path, web_toml_content)?;
+    create_web_toml(&web_toml_path)?;
 
-    // If everything was successful, print the output
-    println!("Output:\n{}", String::from_utf8_lossy(&output.stdout));
-
-    // Cleanup the temporary project directory after completion
+    // Cleanup
     std::fs::remove_dir_all(&temp_dir)?;
+
+    Ok(())
+}
+
+fn append_dependencies_to_cargo_toml(cargo_toml_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let mut cargo_toml = std::fs::read_to_string(cargo_toml_path)?;
+    cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n[dependencies.sdl2]\nversion = \"0.35\"\ndefault-features = false\nfeatures = [\"image\", \"ttf\", \"mixer\"]\n");
+    std::fs::write(cargo_toml_path, cargo_toml)?;
+    Ok(())
+}
+
+fn create_web_toml(web_toml_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let web_toml_content = r#"
+default-target = "wasm32-unknown-emscripten"
+
+[target.emscripten]
+link-args = [
+    "-s", "WASM=1",
+    "-s", "USE_SDL=2",
+]
+"#;
+    std::fs::write(web_toml_path, web_toml_content)?;
+    Ok(())
+}
+
+fn execute_command(command: &str, args: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let status = std::process::Command::new(command)
+        .arg(if cfg!(target_os = "windows") { "/C" } else { "-c" })
+        .arg(args)
+        .status()?;
+
+    if !status.success() {
+        return Err(format!("Failed to execute {:?}", args).into());
+    }
+    Ok(())
+}
+
+fn copy_directory(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if !src.is_dir() {
+        return Err("Source is not a directory".into());
+    }
+
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let path = entry.path();
+        let dest_path = dst.join(entry.file_name());
+
+        if path.is_dir() {
+            std::fs::create_dir_all(&dest_path)?;
+            copy_directory(&path, &dest_path)?;
+        } else {
+            std::fs::copy(&path, &dest_path)?;
+        }
+    }
 
     Ok(())
 }
@@ -868,10 +855,10 @@ pub fn launcher() {
                 if ui.menu_item(state.translate("Text Editor")) {  // New menu item
                     state.open_text_editor = !state.open_text_editor;  // Toggle text editor open/close
                 }
-                if ui.menu_item(state.translate("Console")) {
-                    println!("Console");
-                    state.terminal.log("Console");
-                }
+                // if ui.menu_item(state.translate("Console")) {
+                //     println!("Console");
+                //     state.terminal.log("Console");
+                // }
                 if ui.menu_item("Tile Editor") {
                     println!("Tile Editor");
                     state.tile_open = true;
