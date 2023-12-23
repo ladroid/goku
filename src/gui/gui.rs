@@ -34,12 +34,18 @@ struct GeneralSettings {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TextureComponent {
     pub path: std::path::PathBuf,
+    pub tag_name: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl Default for TextureComponent {
     fn default() -> Self {
         Self {
             path: std::path::PathBuf::new(),
+            tag_name: String::new(),
+            width: 0,
+            height: 0,
         }
     }
 }
@@ -334,7 +340,7 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Append the required dependencies to Cargo.toml
     let cargo_toml_path = temp_dir.join("Cargo.toml");
     let mut cargo_toml = std::fs::read_to_string(&cargo_toml_path)?;
-    cargo_toml.push_str("\n[dependencies]\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
+    cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
     cargo_toml.push_str("sdl2 = { version = \"0.35\", default-features = false, features = [\"image\", \"ttf\", \"mixer\"] }\n"); 
     std::fs::write(&cargo_toml_path, cargo_toml)?;
 
@@ -963,15 +969,33 @@ pub fn launcher() {
                             .pick_file();
 
                         if let Some(file_path) = file {
-                            state.textures.push(TextureComponent { path: file_path });
+                            state.textures.push(TextureComponent {
+                                path: file_path,
+                                tag_name: String::new(),  // default empty string
+                                width: 0,                 // default value, e.g., 0
+                                height: 0,                // default value, e.g., 0
+                            });
                         } else {
                             println!("No file chosen");
                             state.terminal.log_error("No file chosen");
                         }
                     }
                     
-                    for (idx, texture) in state.textures.iter().enumerate() {
+                    for (idx, texture) in state.textures.iter_mut().enumerate() {
                         ui.text(format!("Texture {} path: {:?}", idx + 1, texture.path));
+
+                        // Temporary variables for ImGui input
+                        let mut temp_width = texture.width as i32;
+                        let mut temp_height = texture.height as i32;
+
+                        ui.input_text("Tag Name", &mut texture.tag_name).build();
+                        ui.input_int("Width", &mut temp_width).build();
+                        ui.input_int("Height", &mut temp_height).build();
+
+                        // Clamp negative values to zero (or handle as needed)
+                        texture.width = temp_width.max(0) as u32;
+                        texture.height = temp_height.max(0) as u32;
+
                         let p = texture.path.clone();
                         if ui.button(&format!("Load Texture {}", idx + 1)) {
                             let tex = texture_creator.load_texture(&p).unwrap();
@@ -1141,39 +1165,78 @@ fn generate_template(state: &mut State) {
 mod two_d;
 use nalgebra::Vector2;
 use std::path::Path;
+use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
     let mut window = Window::new("{}", 800, 600)?;
 
-    let last_frame_time = unsafe {{ sdl2::sys::SDL_GetTicks() }};
+    let mut last_frame_time = unsafe {{ sdl2::sys::SDL_GetTicks() }};
     let mut current_frame_time;
     let mut delta_time;
+    
+    // Create a camera object
+    let mut camera = Camera::new(Vector2::new(0, 0), Vector2::new(800, 600));
 
     let texture_creator = window.canvas.texture_creator();
-"#, window_title);
+    "#, window_title);
 
-    // Create a counter for game objects and their textures
-    let mut game_object_counter = 1;
+    // Create a vector to store game object variable names
+    let mut game_objects = Vec::new();
 
     for component in &state.components {
         if component.name == "GameObject" {
-            let game_object_var_name = format!("game_object{}", game_object_counter);
+            let game_object_var_name = format!("game_object{}", game_objects.len() + 1);
+            game_objects.push(game_object_var_name.clone());
             content.push_str(&format!(r#"
-    let texture_manager{} = TextureManagerAnim::new(&texture_creator);
-
+    let mut texture_manager{} = TextureManagerAnim::new(&texture_creator);
     let mut {} = GameObject::new(texture_manager{}, Vector2::new(50, 50));
-{}."#, game_object_counter, game_object_var_name, game_object_counter, game_object_var_name));
-
+    "#, game_objects.len(), game_object_var_name, game_objects.len()));
+    
             for texture in &state.textures {
                 content.push_str(&format!(r#"
-    {}.load_texture(Path::new("{}"), 30, 30, 150)?;
-"#, game_object_var_name, texture.path.display()));
+    {}.load_texture("{}", Path::new("{}"), {}, {}, 150, 0)?;
+    "#, game_object_var_name, texture.tag_name, texture.path.display(), texture.width, texture.height));
             }
-            game_object_counter += 1;
         }
     }
-    content.push_str(&format!(r#"
-Ok(())
-}}"#));
+
+    // Inserting the main loop
+    content.push_str(r#"
+    'mainloop: loop {
+        current_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
+        delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
+        last_frame_time = current_frame_time;
+
+        window.canvas.clear();
+    "#);
+
+    for game_object_var_name in &game_objects {
+        content.push_str(&format!(r#"
+        // Update and render each game object: {}
+        // Update camera position to follow this game object (if needed)
+        camera.update({}.get_position());
+
+        // Render the game object
+        if let Some(current_animation_tag) = &{}.texture_manager_anim.current_animation {{
+            if let Some(animated_texture) = {}.texture_manager_anim.animations.get(current_animation_tag) {{
+                let rect = sdl2::rect::Rect::new(
+                    {}.position.x, 
+                    {}.position.y, 
+                    animated_texture.sprite_sheet.frame_width * 2, 
+                    animated_texture.sprite_sheet.frame_height * 2
+                );
+                let transformed_rect = camera.transform_rect(rect);
+                {}.texture_manager_anim.render_texture(&mut window.canvas, transformed_rect, 0)?;
+            }}
+        }}
+        "#, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name));
+    }
+
+    content.push_str(r#"
+        window.canvas.present();
+    }
+    Ok(())
+}}"#);
+
     state.text_editor_content = content;
 }
