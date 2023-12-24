@@ -1004,7 +1004,7 @@ pub fn launcher() {
                         }
                         state.texture_path = Some(texture.path.to_str().unwrap().to_string());
                     }                    
-                },                               
+                },                           
                 Some(component) => ui.text(component),
                 None => ui.text("No component selected"),
             }
@@ -1022,7 +1022,7 @@ pub fn launcher() {
             }
 
             ui.popup("Add Component", || {
-                let component_types = ["Scene", "Texture", "GameObject"];
+                let component_types = ["Scene", "Texture", "GameObject", "InputHandler"];
 
                 for component_type in &component_types {
                     if ui.selectable(component_type) {
@@ -1165,7 +1165,7 @@ fn generate_template(state: &mut State) {
 mod two_d;
 use nalgebra::Vector2;
 use std::path::Path;
-use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera}};
+use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
     let mut window = Window::new("{}", 800, 600)?;
@@ -1200,6 +1200,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         }
     }
 
+    if state.components.iter().any(|c| c.name == "InputHandler") {
+        content.push_str(r#"
+    // Initialize InputHandler
+    let mut input_handler = InputHandler::new(&window.sdl_context)?;
+    "#);
+    }
+
     // Inserting the main loop
     content.push_str(r#"
     'mainloop: loop {
@@ -1209,6 +1216,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
 
         window.canvas.clear();
     "#);
+
+    if state.components.iter().any(|c| c.name == "InputHandler") {
+        content.push_str(r#"
+        for event in input_handler.poll_events() {
+            // Process input events here
+            // ...
+        }
+        "#);
+    }
 
     for game_object_var_name in &game_objects {
         content.push_str(&format!(r#"
@@ -1236,7 +1252,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         window.canvas.present();
     }
     Ok(())
-}}"#);
+}"#);
 
     state.text_editor_content = content;
 }
