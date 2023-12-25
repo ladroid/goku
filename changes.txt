@@ -17,6 +17,7 @@
 9. GUI: Modify execute_code and execute_code_web function was modified for Linux and Windows
 10. GUI: Improve Texture component possibility to add tags for animation
 11. GUI: Add possibility Input Handler
+12. GUI: Improve DisplayComponentTree
 
 0.1.1 [Quasar Quest]
 1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)
