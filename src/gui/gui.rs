@@ -278,11 +278,21 @@ struct DisplayComponentTree<'a> {
 impl<'a> DisplayComponentTree<'a> {
     fn display(&mut self, components: &[Component], level: usize) {
         for component in components {
-            if imgui::CollapsingHeader::new(&imgui::ImString::new(format!("{:indent$}{}", "", component.name, indent = level * 2))).build(self.ui) {
-                if self.ui.selectable(&format!("{:indent$}{}", "", component.name, indent = (level+1) * 2)) {
+            // Construct the label for the tree node, including the indentation
+            let label = format!("{:indent$}{}", "", component.name, indent = level * 2);
+    
+            // Create a tree node for each component
+            if let Some(node) = self.ui.tree_node(&imgui::ImString::new(label)) {
+                // If the node is clicked, update the selected component
+                if self.ui.is_item_clicked() {
                     self.state.selected_component = Some(component.name.clone());
                 }
+    
+                // Recursively display child components, increasing the level for indentation
                 self.display(&component.children, level + 1);
+    
+                // End the tree node
+                node.end();
             }
         }
     }    
