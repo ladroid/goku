@@ -177,6 +177,10 @@ pub struct State {
     window_name: String,
     #[serde(skip)]
     translations: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+    #[serde(skip)]
+    show_save_dialog: bool,
+    #[serde(skip)]
+    show_save_dialog_file: bool,
 }
 
 impl State {
@@ -211,6 +215,8 @@ impl State {
             exit_requested: false,
             window_name: "".to_string(),
             translations: std::collections::HashMap::new(),
+            show_save_dialog: false,
+            show_save_dialog_file: false,
         }
     }
 
@@ -480,7 +486,6 @@ link-args = [
 
 fn execute_command(command: &str, args: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let status = std::process::Command::new(command)
-        .arg(if cfg!(target_os = "windows") { "/C" } else { "-c" })
         .arg(args)
         .status()?;
 
@@ -969,6 +974,8 @@ pub fn launcher() {
                     ui.slider("Scale", 0.1, 10.0, &mut texture_scale);
                     // Your GUI here
                     if ui.button("Generate Template") {
+                        // Set the flag to show the save dialog
+                        state.show_save_dialog = true;
                         generate_template(&mut state);
                     }
                 },
@@ -1145,6 +1152,48 @@ pub fn launcher() {
                     }
             });
         }
+
+        // This will ensure the popup is rendered if it's open
+        if state.show_save_dialog {
+            if let Some(want) = user_wants_to_save(&ui, &mut state.show_save_dialog) {
+                if want {
+                    state.show_save_dialog_file = true;
+                    if state.show_save_dialog_file {
+                        if let Some(file_path) = save_project() {
+                            if save_project_to_path(&file_path, &state).is_ok() {
+                                println!("Project saved to {:?}", file_path);
+                                // state.terminal.log("Project saved");
+                                // let rs_file_path = format!("{}.rs", file_path);
+                                let rs_file_path = std::path::PathBuf::from(file_path).parent().unwrap().join(format!("{}.rs", "test"));
+                            
+                                // Write the content to the .rs file
+                                match std::fs::write(&rs_file_path, state.text_editor_content.as_str()) {
+                                    Ok(_) => println!("File written successfully: {:?}", rs_file_path),
+                                    Err(e) => eprintln!("Failed to write file: {}", e),
+                                }
+        
+                                if is_vscode_installed() {
+                                    match execute_command("code.cmd", &rs_file_path) {
+                                        Ok(_) => println!("Good"),
+                                        Err(e) => eprintln!("Failed: {}", e),
+                                    }
+                                } else {
+                                    eprintln!("Visual Studio Code is not installed or not in PATH.");
+                                    state.terminal.log_error("Visual Studio Code is not installed or not in PATH");
+                                }
+                            } else {
+                                eprintln!("Failed to save project to {:?}", file_path);
+                                state.terminal.log_error(format!("Failed to save project to {:?}", file_path));
+                            }  
+                        } else {
+                            println!("Doesn't save");
+                        }
+                    }
+                } else {
+                    state.terminal.log("No save");
+                }
+            }
+        }
                 
         /* render texture at the position specified by the slider */
         canvas.clear();
@@ -1166,6 +1215,23 @@ pub fn launcher() {
             canvas.present();
         }
         canvas.clear();
+    }
+}
+
+fn is_vscode_installed() -> bool {
+    if cfg!(target_os = "windows") {
+        // Windows-specific logic
+        std::process::Command::new("cmd")
+            .args(["/C", "code --version"])
+            .output()
+            .is_ok()
+    } else {
+        // Unix-like OS logic
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg("code --version")
+            .output()
+            .is_ok()
     }
 }
 
@@ -1265,4 +1331,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
 }"#);
 
     state.text_editor_content = content;
+}
+
+fn user_wants_to_save(ui: &imgui::Ui, show_save_dialog: &mut bool) -> Option<bool> {
+    let mut result = None;
+
+    if *show_save_dialog {
+        ui.open_popup("Save Scene?");
+    }
+
+    ui.modal_popup("Save Scene?", || {
+        ui.text("Do you want to save the scene?");
+
+        if ui.button("Yes") {
+            result = Some(true);
+            *show_save_dialog = false;
+            ui.close_current_popup();
+        }
+
+        ui.same_line();
+
+        if ui.button("No") {
+            result = Some(false);
+            *show_save_dialog = false;
+            ui.close_current_popup();
+        }
+    });
+
+    result
 }
