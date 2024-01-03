@@ -330,7 +330,7 @@ pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, 
     (selected_text, remaining_text)
 }
 
-pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_code(code: &str,) -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = std::env::temp_dir().join("temp_cargo_project");
 
     // Create a new cargo project if it doesn't exist
@@ -1162,20 +1162,32 @@ pub fn launcher() {
                         if let Some(file_path) = save_project() {
                             if save_project_to_path(&file_path, &state).is_ok() {
                                 println!("Project saved to {:?}", file_path);
-                                // state.terminal.log("Project saved");
+                                state.terminal.log(format!("Project saved to {:?}", file_path));
                                 // let rs_file_path = format!("{}.rs", file_path);
                                 let rs_file_path = std::path::PathBuf::from(file_path).parent().unwrap().join(format!("{}.rs", "test"));
                             
                                 // Write the content to the .rs file
                                 match std::fs::write(&rs_file_path, state.text_editor_content.as_str()) {
-                                    Ok(_) => println!("File written successfully: {:?}", rs_file_path),
-                                    Err(e) => eprintln!("Failed to write file: {}", e),
+                                    Ok(_) => {
+                                        println!("File written successfully: {:?}", rs_file_path);
+                                        state.terminal.log(format!("File written successfully: {:?}", rs_file_path));
+                                    },
+                                    Err(e) => {
+                                        eprintln!("Failed to write file: {}", e);
+                                        state.terminal.log_error(format!("Failed to write file: {}", e));
+                                    },
                                 }
         
                                 if is_vscode_installed() {
                                     match execute_command("code.cmd", &rs_file_path) {
-                                        Ok(_) => println!("Good"),
-                                        Err(e) => eprintln!("Failed: {}", e),
+                                        Ok(_) => {
+                                            println!("Good");
+                                            state.terminal.log("VSCode was found");
+                                        },
+                                        Err(e) => {
+                                            eprintln!("Failed: {}", e);
+                                            state.terminal.log_error(format!("Failed: {}", e));
+                                        },
                                     }
                                 } else {
                                     eprintln!("Visual Studio Code is not installed or not in PATH.");
@@ -1187,10 +1199,11 @@ pub fn launcher() {
                             }  
                         } else {
                             println!("Doesn't save");
+                            state.terminal.log_error("Scene was not saved");
                         }
                     }
                 } else {
-                    state.terminal.log("No save");
+                    state.terminal.log_error("No saves");
                 }
             }
         }
