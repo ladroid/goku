@@ -330,7 +330,7 @@ pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, 
     (selected_text, remaining_text)
 }
 
-pub fn execute_code(code: &str,) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = std::env::temp_dir().join("temp_cargo_project");
 
     // Create a new cargo project if it doesn't exist
