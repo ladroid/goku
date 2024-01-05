@@ -330,7 +330,7 @@ pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, 
     (selected_text, remaining_text)
 }
 
-pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_code(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = std::env::temp_dir().join("temp_cargo_project");
 
     // Create a new cargo project if it doesn't exist
@@ -342,13 +342,14 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
             .status()?;
 
         if !status.success() {
+            state.terminal.log_error("Failed to create a new cargo project");
             return Err("Failed to create a new cargo project".into());
         }
     }
 
     // Write the provided code to the main.rs file in the new cargo project
     let main_rs = temp_dir.join("src").join("main.rs");
-    std::fs::write(&main_rs, code)?;
+    std::fs::write(&main_rs, state.text_editor_content.clone())?;
 
     // Handle two_d module copying
     handle_two_d_module(&temp_dir)?;
@@ -367,6 +368,7 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
         .status()?;
 
     if !status.success() {
+        state.terminal.log_error("Failed to compile the code");
         return Err("Failed to compile the code".into());
     }
 
@@ -376,11 +378,13 @@ pub fn execute_code(code: &str) -> Result<(), Box<dyn std::error::Error>> {
         .output()?;
 
     if !output.status.success() {
+        state.terminal.log_error("Failed to execute the code");
         return Err("Failed to execute the code".into());
     }
 
     // If everything was successful, print the output
     println!("Output:\n{}", String::from_utf8_lossy(&output.stdout));
+    state.terminal.log(format!("Output:\n{}", String::from_utf8_lossy(&output.stdout)));
 
     // Cleanup the temporary project directory after completion
     std::fs::remove_dir_all(&temp_dir)?;
@@ -909,7 +913,7 @@ pub fn launcher() {
                     // }
                 });
                 if ui.menu_item(state.translate("Run")) {
-                    match execute_code(&state.text_editor_content) {
+                    match execute_code(&mut state) {
                         Ok(_) => {
                             println!("Execution successful!");
                             state.terminal.log("Execution successful!");
