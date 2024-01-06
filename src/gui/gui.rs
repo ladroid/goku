@@ -12,8 +12,7 @@ use std::path::Path;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
-use clipboard::ClipboardProvider;
-use clipboard::ClipboardContext;
+use copypasta::{ClipboardContext, ClipboardProvider};
 use std::fmt::Display;
 use chrono::{DateTime, Utc};
 
