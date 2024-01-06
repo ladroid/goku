@@ -181,6 +181,8 @@ pub struct State {
     show_save_dialog: bool,
     #[serde(skip)]
     show_save_dialog_file: bool,
+    #[serde(skip)]
+    project_dir: std::path::PathBuf,
 }
 
 impl State {
@@ -217,6 +219,7 @@ impl State {
             translations: std::collections::HashMap::new(),
             show_save_dialog: false,
             show_save_dialog_file: false,
+            project_dir: std::path::PathBuf::new(),
         }
     }
 
@@ -331,50 +334,23 @@ pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, 
 }
 
 pub fn execute_code(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
-    let temp_dir = std::env::temp_dir().join("temp_cargo_project");
+    let project_dir = &state.project_dir; // Assuming `project_dir` is stored in state
 
-    // Create a new cargo project if it doesn't exist
-    if !temp_dir.exists() {
-        let status = std::process::Command::new("cargo")
-            .arg("new")
-            .arg("--bin")
-            .arg(&temp_dir)
-            .status()?;
-
-        if !status.success() {
-            state.terminal.log_error("Failed to create a new cargo project");
-            return Err("Failed to create a new cargo project".into());
-        }
-    }
-
-    // Write the provided code to the main.rs file in the new cargo project
-    let main_rs = temp_dir.join("src").join("main.rs");
-    std::fs::write(&main_rs, state.text_editor_content.clone())?;
-
-    // Handle two_d module copying
-    handle_two_d_module(&temp_dir)?;
-
-    // Append the required dependencies to Cargo.toml
-    let cargo_toml_path = temp_dir.join("Cargo.toml");
-    let mut cargo_toml = std::fs::read_to_string(&cargo_toml_path)?;
-    cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
-    cargo_toml.push_str("sdl2 = { version = \"0.35\", default-features = false, features = [\"image\", \"ttf\", \"mixer\"] }\n"); 
-    std::fs::write(&cargo_toml_path, cargo_toml)?;
-
-    // Build and run the new cargo project
-    let status = std::process::Command::new("cargo")
+    // Build the cargo project
+    let build_status = std::process::Command::new("cargo")
         .arg("build")
-        .current_dir(&temp_dir)
+        .current_dir(project_dir)
         .status()?;
 
-    if !status.success() {
+    if !build_status.success() {
         state.terminal.log_error("Failed to compile the code");
         return Err("Failed to compile the code".into());
     }
 
+    // Run the built cargo project
     let output = std::process::Command::new("cargo")
         .arg("run")
-        .current_dir(&temp_dir)
+        .current_dir(project_dir)
         .output()?;
 
     if !output.status.success() {
@@ -385,9 +361,6 @@ pub fn execute_code(state: &mut State) -> Result<(), Box<dyn std::error::Error>>
     // If everything was successful, print the output
     println!("Output:\n{}", String::from_utf8_lossy(&output.stdout));
     state.terminal.log(format!("Output:\n{}", String::from_utf8_lossy(&output.stdout)));
-
-    // Cleanup the temporary project directory after completion
-    std::fs::remove_dir_all(&temp_dir)?;
 
     Ok(())
 }
@@ -1157,60 +1130,89 @@ pub fn launcher() {
             });
         }
 
-        // This will ensure the popup is rendered if it's open
         if state.show_save_dialog {
             if let Some(want) = user_wants_to_save(&ui, &mut state.show_save_dialog) {
                 if want {
                     state.show_save_dialog_file = true;
                     if state.show_save_dialog_file {
-                        if let Some(file_path) = save_project() {
-                            if save_project_to_path(&file_path, &state).is_ok() {
-                                println!("Project saved to {:?}", file_path);
-                                state.terminal.log(format!("Project saved to {:?}", file_path));
-                                // let rs_file_path = format!("{}.rs", file_path);
-                                let rs_file_path = std::path::PathBuf::from(file_path).parent().unwrap().join(format!("{}.rs", "test"));
-                            
-                                // Write the content to the .rs file
-                                match std::fs::write(&rs_file_path, state.text_editor_content.as_str()) {
-                                    Ok(_) => {
-                                        println!("File written successfully: {:?}", rs_file_path);
-                                        state.terminal.log(format!("File written successfully: {:?}", rs_file_path));
+                        if let Some(file_path_str) = save_project() {
+                            state.project_dir = std::path::PathBuf::from(file_path_str);
+                            let package_name = state.project_dir.file_name().unwrap().to_str().unwrap().replace(".", "_");
+                            // Create a new cargo project if it doesn't exist
+                            if !state.project_dir.exists() {
+                                match std::process::Command::new("cargo")
+                                        .arg("new")
+                                        .arg("--bin")
+                                        .arg("--name")
+                                        .arg(&package_name)
+                                        .arg(&state.project_dir)
+                                        .status() {
+                                    Ok(status) => {
+                                        if !status.success() {
+                                            eprintln!("Failed to create a new cargo project");
+                                            state.terminal.log_error("Failed to create a new cargo project");
+                                            // Handle error appropriately
+                                        }
                                     },
                                     Err(e) => {
-                                        eprintln!("Failed to write file: {}", e);
-                                        state.terminal.log_error(format!("Failed to write file: {}", e));
+                                        eprintln!("Cargo command failed: {}", e);
+                                        state.terminal.log_error(format!("Cargo command failed: {}", e));
+                                        // Handle error appropriately
+                                    }
+                                }
+                            }
+        
+                            // Append the required dependencies to Cargo.toml
+                            let cargo_toml_path = state.project_dir.join("Cargo.toml");
+                            let mut cargo_toml = std::fs::read_to_string(&cargo_toml_path).expect("Failed to read Cargo.toml");
+                            cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n");
+                            cargo_toml.push_str("sdl2 = { version = \"0.35\", default-features = false, features = [\"image\", \"ttf\", \"mixer\"] }\n");
+                            std::fs::write(&cargo_toml_path, cargo_toml).expect("Failed to write to Cargo.toml");
+        
+                            // Write the content to the main.rs file
+                            let main_rs_path = state.project_dir.join("src").join("main.rs");
+                            std::fs::write(&main_rs_path, state.text_editor_content.as_str()).expect("Failed to write to main.rs");
+                            
+                            // Handle two_d module copying
+                            match handle_two_d_module(&state.project_dir) {
+                                Ok(_) => {
+                                    println!("two_d module was placed");
+                                    state.terminal.log("two_d module was placed");
+                                },
+                                Err(e) => {
+                                    eprintln!("Failed to place two_d module: {}", e);
+                                    state.terminal.log_error(format!("Failed to place two_d module: {}", e));
+                                }
+                            }
+
+                            if is_vscode_installed() {
+                                match execute_command("code.cmd", &main_rs_path) {
+                                    Ok(_) => {
+                                        println!("VSCode opened with the project");
+                                        state.terminal.log("VSCode was found and opened with the project");
+                                    },
+                                    Err(e) => {
+                                        eprintln!("Failed to open project with VSCode: {}", e);
+                                        state.terminal.log_error(format!("Failed to open project with VSCode: {}", e));
                                     },
                                 }
-        
-                                if is_vscode_installed() {
-                                    match execute_command("code.cmd", &rs_file_path) {
-                                        Ok(_) => {
-                                            println!("Good");
-                                            state.terminal.log("VSCode was found");
-                                        },
-                                        Err(e) => {
-                                            eprintln!("Failed: {}", e);
-                                            state.terminal.log_error(format!("Failed: {}", e));
-                                        },
-                                    }
-                                } else {
-                                    eprintln!("Visual Studio Code is not installed or not in PATH.");
-                                    state.terminal.log_error("Visual Studio Code is not installed or not in PATH");
-                                }
                             } else {
-                                eprintln!("Failed to save project to {:?}", file_path);
-                                state.terminal.log_error(format!("Failed to save project to {:?}", file_path));
-                            }  
+                                eprintln!("Visual Studio Code is not installed or not in PATH.");
+                                state.terminal.log_error("Visual Studio Code is not installed or not in PATH");
+                            }
+        
+                            println!("Project saved to {:?}", state.project_dir);
+                            state.terminal.log(format!("Project saved to {:?}", state.project_dir));
                         } else {
-                            println!("Doesn't save");
-                            state.terminal.log_error("Scene was not saved");
+                            eprintln!("Failed to save project");
+                            state.terminal.log_error("Failed to save project");
                         }
                     }
                 } else {
-                    state.terminal.log_error("No saves");
+                    state.terminal.log_error("Save canceled by user");
                 }
             }
-        }
+        }        
                 
         /* render texture at the position specified by the slider */
         canvas.clear();

@@ -19,6 +19,13 @@
 11. GUI: Add possibility Input Handler
 12. GUI: Improve DisplayComponentTree
 13. GUI: Integrate VSCode
+14. Minor update: Add logging for some parts of executing
+15. Minor update: Fix function
+16. Minor update: modify execute_code, representing everything in logs
+17. GUI: 
+    1. Modified launch project now when user clicks on generate template appears dialogue box with asking to save a scene
+        "yes" then save where user want and then VSCode automatically open .rs file with template. 
+    2. Modified execute_code now it executes project which was recently saved
 
 0.1.1 [Quasar Quest]
 1. Animation class was improved now we can set a row from one png file(instea dof cutting into some separate pngs and playing with them around)
