@@ -1,4 +1,4 @@
-0.1.2
+0.1.2 [Galactic Gateway]
 1. Split one big file two_d.rs into small sub-files (easy improve, debug, etc.)
 2. Make first game
     - Randomly generated dungeon

@@ -699,8 +699,8 @@ pub fn launcher() {
     let mut is_light_theme = false; // Boolean to track the current theme (You can manage this in your state if required)
 
     let about_info = AboutInfo {
-        version: String::from("0.1.0"),
-        date: String::from("03-25-2023"),
+        version: String::from("0.1.2"),
+        date: String::from("01-06-2023"),
         rust_version: String::from("1.68"),
         games_api: String::from("SDL2"),
         os: std::env::consts::OS.to_string(),
