@@ -1,4 +1,3 @@
-use crate::two_d;
 use glow::HasContext;
 use imgui::Context;
 use imgui_glow_renderer::AutoRenderer;
@@ -28,6 +27,7 @@ struct GeneralSettings {
     enable_vsync: bool,
     volume: f32,
     language: String,
+    enable_input_handler: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -159,10 +159,6 @@ pub struct State {
     #[serde(skip)]
     redo_stack: Vec<String>,
     #[serde(skip)]
-    tile: Option<two_d::Tile<'static>>,
-    #[serde(skip)]
-    tile_open: bool,
-    #[serde(skip)]
     search_query: String,
     #[serde(skip)]
     search_result_index: usize,
@@ -201,14 +197,13 @@ impl State {
                 enable_vsync: false,
                 volume: 50.0,
                 language: "English".to_string(),
+                enable_input_handler: false,
             },
             gameobject_position: None,
             texture_path: None,
             terminal: Terminal::new(50),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-            tile: None,
-            tile_open: false,
             search_query: "".to_string(),
             search_result_index: 0,
             search_results: Vec::new(),
@@ -539,53 +534,6 @@ pub fn open_state() -> std::io::Result<Option<State>> {
     }
 }
 
-fn display_tile_editor(ui: &imgui::Ui, state: &mut State) {
-    ui.window("Tile Editor")
-        .size([300.0, 600.0], imgui::Condition::FirstUseEver)
-        .position([650.0, 10.0], imgui::Condition::FirstUseEver)
-        .opened(&mut state.tile_open)
-        .build(|| {
-            if let Some(tile) = &mut state.tile {
-                // Edit tile_map:
-                for (row_index, row) in tile.tile_map.iter_mut().enumerate() {
-                    for (col_index, tile_type) in row.iter_mut().enumerate() {
-                        let old_tile_type_i32 = *tile_type as i32;
-                        let mut tile_type_i32 = old_tile_type_i32;
-                        let _ = ui.input_int(&format!("Tile[{},{}]", row_index, col_index), &mut tile_type_i32);
-                        if old_tile_type_i32 != tile_type_i32 {
-                            *tile_type = tile_type_i32.max(0) as u32;  // Ensure non-negative
-                        }
-                    }
-                }
-
-                // Edit colliders:
-                for (index, collider) in tile.colliders.iter_mut().enumerate() {
-                    let mut x = collider.x();
-                    let mut y = collider.y();
-                    let mut w = collider.width() as i32;
-                    let mut h = collider.height() as i32;
-
-                    let _ = ui.input_int(&format!("Collider[{}] X", index), &mut x);
-                    let _ = ui.input_int(&format!("Collider[{}] Y", index), &mut y);
-                    let _ = ui.input_int(&format!("Collider[{}] Width", index), &mut w);
-                    let _ = ui.input_int(&format!("Collider[{}] Height", index), &mut h);
-
-                    *collider = sdl2::rect::Rect::new(x, y, w.max(0) as u32, h.max(0) as u32);  // Ensure non-negative dimensions
-                }
-
-                // For textures:
-                for (index, _texture) in tile.textures.iter_mut().enumerate() {
-                    // You'll need to adjust how you display and edit the texture.
-                    // This is just a placeholder to get you started.
-                    let mut texture_name = String::new(); // This is a placeholder. You should initialize with the current texture's name or id.
-                    let _ = ui.input_text(&format!("Texture[{}]", index), &mut texture_name);
-                    // If texture_name has changed, load/update the texture or whatever logic you have in place.
-                }
-            }
-        });
-}
-
-
 pub fn launcher() {
     /* initialize SDL and its video subsystem */
     let sdl = sdl2::init().unwrap();
@@ -852,14 +800,6 @@ pub fn launcher() {
                 if ui.menu_item(state.translate("Text Editor")) {  // New menu item
                     state.open_text_editor = !state.open_text_editor;  // Toggle text editor open/close
                 }
-                // if ui.menu_item(state.translate("Console")) {
-                //     println!("Console");
-                //     state.terminal.log("Console");
-                // }
-                if ui.menu_item("Tile Editor") {
-                    println!("Tile Editor");
-                    state.tile_open = true;
-                }
             });
             ui.menu(state.translate("Tools"), || {
                 ui.menu(state.translate("Build"), || {
@@ -1015,7 +955,7 @@ pub fn launcher() {
             }
 
             ui.popup("Add Component", || {
-                let component_types = ["Scene", "Texture", "GameObject", "InputHandler"];
+                let component_types = ["Scene", "Texture", "GameObject"];
 
                 for component_type in &component_types {
                     if ui.selectable(component_type) {
@@ -1046,6 +986,7 @@ pub fn launcher() {
         let terminal_height = 200.0; // Adjust as needed
         let terminal_position: [f32; 2] = [0.0, window_height as f32 - terminal_height];
         ui.window("Console")
+          .flags(imgui::WindowFlags::NO_RESIZE)
           .size([window_width as f32, window_height as f32], imgui::Condition::Always)
           .position(terminal_position, imgui::Condition::Always)
           .build(|| {
@@ -1064,10 +1005,6 @@ pub fn launcher() {
               }
             });
 
-        if state.tile_open {
-            display_tile_editor(&ui, &mut state);
-        }
-
         if state.open_preferences {
             ui.window(state.translate("Preferences"))
                 .size([400.0, 300.0], imgui::Condition::FirstUseEver)
@@ -1085,12 +1022,8 @@ pub fn launcher() {
                         ui.slider("Volume", 0.0, 100.0, &mut state.general_settings.volume);
                         // Add controls for general settings here
                     });
-                    ui.menu("Appearance", || {
-                        ui.text("Appearance settings...");
-                        // Add controls for appearance settings here
-                    });
                     ui.menu("Input", || {
-                        ui.text("Input settings...");
+                        ui.checkbox("Enable Input Handler", &mut state.general_settings.enable_input_handler);
                         // Add controls for input settings here
                     });
                     let languages = ["English", "Deutsch", "Español", "Français", "日本語"];
@@ -1208,7 +1141,7 @@ pub fn launcher() {
                         }
                     }
                 } else {
-                    state.terminal.log_error("Save canceled by user");
+                    state.terminal.log("Save canceled by user");
                 }
             }
         }        
@@ -1294,7 +1227,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         }
     }
 
-    if state.components.iter().any(|c| c.name == "InputHandler") {
+    if state.general_settings.enable_input_handler {
         content.push_str(r#"
     // Initialize InputHandler
     let mut input_handler = InputHandler::new(&window.sdl_context)?;
@@ -1311,7 +1244,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         window.canvas.clear();
     "#);
 
-    if state.components.iter().any(|c| c.name == "InputHandler") {
+    if state.general_settings.enable_input_handler {
         content.push_str(r#"
         for event in input_handler.poll_events() {
             // Process input events here
