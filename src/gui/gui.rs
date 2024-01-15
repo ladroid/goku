@@ -141,6 +141,13 @@ pub struct AmbientFilterComponent {
     pub intensity: f32,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AudioPlayerComponent {
+    pub volume: i32,
+    pub track_path: String,
+    pub loop_count: i32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     selected_component: Option<String>,
@@ -185,6 +192,8 @@ pub struct State {
     project_dir: std::path::PathBuf,
     #[serde(skip)]
     ambient_filters: Vec<AmbientFilterComponent>,
+    #[serde(skip)]
+    audio_player: Option<AudioPlayerComponent>,
 }
 
 impl State {
@@ -222,6 +231,7 @@ impl State {
             show_save_dialog_file: false,
             project_dir: std::path::PathBuf::new(),
             ambient_filters: Vec::new(),
+            audio_player: None,
         }
     }
 
@@ -959,7 +969,21 @@ pub fn launcher() {
                                 .build();
                         }
                     }
-                }                         
+                },
+                Some(component) if component == "Audio Player" => {
+                    if state.audio_player.is_none() {
+                        state.audio_player = Some(AudioPlayerComponent {
+                            volume: 35,
+                            track_path: String::new(),
+                            loop_count: -1,
+                        });
+                    }
+                    if let Some(audio_player) = state.audio_player.as_mut() {
+                        ui.input_text("Track Path", &mut audio_player.track_path).build();
+                        ui.input_int("Volume", &mut audio_player.volume).build();
+                        ui.input_int("Loop Count", &mut audio_player.loop_count).build();
+                    }
+                },                         
                 Some(component) => ui.text(component),
                 None => ui.text("No component selected"),
             }
@@ -1266,6 +1290,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
     // Initialize InputHandler
     let mut input_handler = InputHandler::new(&window.sdl_context)?;
     "#);
+    }
+
+    if let Some(audio_player) = &state.audio_player {
+        content.push_str(&format!(r#"
+    // Initialize Audio Player
+    let mut audio = two_d::audio::AudioPlayer::new(4);
+    let _music = audio.play(std::path::Path::new("{}"), {}, {});
+    "#, audio_player.track_path, audio_player.loop_count, audio_player.volume));
     }
 
     // Inserting the main loop
