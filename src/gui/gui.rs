@@ -136,6 +136,11 @@ struct TranslationRequest {
     translated_text: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AmbientFilterComponent {
+    pub intensity: f32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     selected_component: Option<String>,
@@ -178,6 +183,8 @@ pub struct State {
     show_save_dialog_file: bool,
     #[serde(skip)]
     project_dir: std::path::PathBuf,
+    #[serde(skip)]
+    ambient_filters: Vec<AmbientFilterComponent>,
 }
 
 impl State {
@@ -214,6 +221,7 @@ impl State {
             show_save_dialog: false,
             show_save_dialog_file: false,
             project_dir: std::path::PathBuf::new(),
+            ambient_filters: Vec::new(),
         }
     }
 
@@ -937,7 +945,21 @@ pub fn launcher() {
                         }
                         state.texture_path = Some(texture.path.to_str().unwrap().to_string());
                     }                    
-                },                           
+                },  
+                Some(component) if component == "Ambient Filter" => {
+                    if state.ambient_filters.is_empty() {
+                        // Add a new AmbientFilterComponent with a default intensity
+                        state.ambient_filters.push(AmbientFilterComponent { intensity: 0.5 });
+                    } else {
+                        // If an AmbientFilterComponent already exists, update its intensity
+                        if let Some(filter) = state.ambient_filters.last_mut() {
+                            ui.input_float("Intensity", &mut filter.intensity)
+                                .step(0.01)
+                                .step_fast(0.1)
+                                .build();
+                        }
+                    }
+                }                         
                 Some(component) => ui.text(component),
                 None => ui.text("No component selected"),
             }
@@ -955,10 +977,10 @@ pub fn launcher() {
             }
 
             ui.popup("Add Component", || {
-                let component_types = ["Scene", "Texture", "GameObject"];
+                let component_types = ["Scene", "Texture", "GameObject", "Ambient Filter", "Layer", "Audio Player", "Particle System"];
 
                 for component_type in &component_types {
-                    if ui.selectable(component_type) {
+                    if ui.selectable(component_type) {     
                         let new_component = Component {
                             name: component_type.to_string(),
                             children: Vec::new(),
@@ -1227,6 +1249,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         }
     }
 
+    // Additional code for AmbientFilter if it exists in state
+    if state.components.iter().any(|c| c.name == "Ambient Filter") {
+        for (index, filter) in state.ambient_filters.iter().enumerate() {
+            content.push_str(&format!(r#"
+    // Initialize AmbientFilter {}
+    let mut light_texture{} = texture_creator.create_texture_streaming(None, 800, 600)?;
+    light_texture{}.set_blend_mode(sdl2::render::BlendMode::Add);
+    let light{} = AmbientFilter::new({});  // Intensity from the state
+    "#, index, index, index, index, filter.intensity));
+        }
+    }
+
     if state.general_settings.enable_input_handler {
         content.push_str(r#"
     // Initialize InputHandler
@@ -1273,6 +1307,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
             }}
         }}
         "#, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name, game_object_var_name));
+    }
+
+    // Additional rendering code for AmbientFilter
+    if state.components.iter().any(|c| c.name == "Ambient Filter") {
+        // Loop through each AmbientFilter component for rendering
+        for (index, _) in state.ambient_filters.iter().enumerate() {
+            content.push_str(&format!(r#"
+        // Render the ambient light from filter {}
+        light{}.render(&mut window.canvas, &mut light_texture{});
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
+        window.canvas.copy(&light_texture{}, None, None)?;
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
+        "#, index, index, index, index));
+            }
     }
 
     content.push_str(r#"
