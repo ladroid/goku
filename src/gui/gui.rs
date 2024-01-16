@@ -978,8 +978,19 @@ pub fn launcher() {
                             loop_count: -1,
                         });
                     }
+                
                     if let Some(audio_player) = state.audio_player.as_mut() {
-                        ui.input_text("Track Path", &mut audio_player.track_path).build();
+                        if ui.button("Select Track...") {
+                            let file_dialog = rfd::FileDialog::new()
+                                .add_filter("audio", &["mp3", "wav", "ogg"])
+                                .pick_file();
+                
+                            if let Some(file_path) = file_dialog {
+                                audio_player.track_path = file_path.to_string_lossy().to_string();
+                            }
+                        }
+                
+                        ui.text(format!("Track Path: {}", audio_player.track_path));
                         ui.input_int("Volume", &mut audio_player.volume).build();
                         ui.input_int("Loop Count", &mut audio_player.loop_count).build();
                     }
