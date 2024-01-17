@@ -25,7 +25,6 @@ pub struct Component {
 struct GeneralSettings {
     enable_fullscreen: bool,
     enable_vsync: bool,
-    volume: f32,
     language: String,
     enable_input_handler: bool,
 }
@@ -211,7 +210,6 @@ impl State {
             general_settings: GeneralSettings {
                 enable_fullscreen: false,
                 enable_vsync: false,
-                volume: 50.0,
                 language: "English".to_string(),
                 enable_input_handler: false,
             },
@@ -1012,8 +1010,8 @@ pub fn launcher() {
             }
 
             ui.popup("Add Component", || {
-                let component_types = ["Scene", "Texture", "GameObject", "Ambient Filter", "Layer", "Audio Player", "Particle System"];
-
+                let mut component_types = ["Scene", "Texture", "GameObject", "Ambient Filter", "Layer", "Audio Player", "Particle System", "Light", "Physics", "AI"];
+                component_types.sort();
                 for component_type in &component_types {
                     if ui.selectable(component_type) {     
                         let new_component = Component {
@@ -1070,13 +1068,12 @@ pub fn launcher() {
                     ui.text("Preferences Categories:");
                     ui.separator();
                     ui.menu("General", || {
-                        ui.text("General settings...");
+                        ui.text("General settings");
                         ui.separator();
                         // You can add sliders, checkboxes, and other controls for various general settings
                         ui.checkbox("Enable Fullscreen", &mut state.general_settings.enable_fullscreen);
                         ui.checkbox("Enable canvas present", &mut state.canvas_present);
                         ui.checkbox("Enable VSync", &mut state.general_settings.enable_vsync);
-                        ui.slider("Volume", 0.0, 100.0, &mut state.general_settings.volume);
                         // Add controls for general settings here
                     });
                     ui.menu("Input", || {
