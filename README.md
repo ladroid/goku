@@ -189,6 +189,8 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * Profiler
 
+* Support VSCode
+
 * Supports several languages:
     - German
     - Spanish
