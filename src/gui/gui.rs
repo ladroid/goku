@@ -457,6 +457,23 @@ pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+pub fn build_code(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
+    let project_dir = &state.project_dir; // Assuming `project_dir` is stored in state
+
+    // Build the cargo project
+    let build_status = std::process::Command::new("cargo")
+        .arg("build")
+        .current_dir(project_dir)
+        .status()?;
+
+    if !build_status.success() {
+        state.terminal.log_error("Failed to compile the code");
+        return Err("Failed to compile the code".into());
+    }
+
+    Ok(())
+}
+
 fn append_dependencies_to_cargo_toml(cargo_toml_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let mut cargo_toml = std::fs::read_to_string(cargo_toml_path)?;
     cargo_toml.push_str("\nnalgebra = \"0.32.2\"\nsdl2-sys = \"0.35.2\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nserde_derive = \"1.0.163\"\nrand = \"0.8.5\"\n[dependencies.sdl2]\nversion = \"0.35\"\ndefault-features = false\nfeatures = [\"image\", \"ttf\", \"mixer\"]\n");
@@ -842,14 +859,18 @@ pub fn launcher() {
                             },
                         }
                     }
-                    // if ui.menu_item("Windows") {
-                    // }
-                    // if ui.menu_item("Mac OS") {
-                    // }
-                    // if ui.menu_item("Linux") {
-                    // }
-                    // if ui.menu_item("Android") {
-                    // }
+                    if ui.menu_item("Windows/Linux/MacOS") {
+                        match build_code(&mut state) {
+                            Ok(_) => {
+                                println!("Build successful!");
+                                state.terminal.log("Build successful!");
+                            },
+                            Err(e) => {
+                                println!("Build failed: {}", e);
+                                state.terminal.log_error(format!("Build failed: {}", e));
+                            }
+                        }
+                    }
                 });
                 if ui.menu_item(state.translate("Run")) {
                     match execute_code(&mut state) {
