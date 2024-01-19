@@ -107,11 +107,12 @@ impl Terminal {
     }
 
     fn add_message(&mut self, message_type: MessageType, content: String) {
-        if self.content.len() >= self.max_lines {
+        if self.max_lines > 0 && self.content.len() >= self.max_lines {
             self.content.remove(0);
         }
         self.content.push(LogMessage::new(message_type, content));
     }
+    
 
     fn display(&self, ui: &imgui::Ui, only_errors: bool) {
         for message in &self.content {
@@ -509,7 +510,7 @@ fn copy_directory(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-pub fn save_project() -> Option<String> {
+pub fn save_project() -> Option<(String, String)> {
     let dialog = rfd::FileDialog::new()
         .add_filter("SuperCool Project", &["sc"])
         .set_directory(".")
@@ -517,7 +518,11 @@ pub fn save_project() -> Option<String> {
         .save_file(); // Use save_file() instead of save()
 
     match dialog {
-        Some(result) => Some(result.into_os_string().into_string().unwrap()),
+        Some(result) => {
+            let path_str = result.into_os_string().into_string().unwrap();
+            let sc_path_str = path_str.clone() + ".sc";
+            Some((path_str, sc_path_str))
+        },
         None => {
             eprintln!("Failed to show save dialog");
             None
@@ -729,7 +734,7 @@ pub fn launcher() {
                     }
                 }                
                 if ui.menu_item(state.translate("Save")) {
-                    if let Some(path) = save_project() {
+                    if let Some((path, _)) = save_project() {
                         if save_project_to_path(&path, &state).is_ok() {
                             println!("Project saved to {:?}", path);
                             state.terminal.log("Project saved");
@@ -1129,7 +1134,7 @@ pub fn launcher() {
                 if want {
                     state.show_save_dialog_file = true;
                     if state.show_save_dialog_file {
-                        if let Some(file_path_str) = save_project() {
+                        if let Some((file_path_str, sc_path_str)) = save_project() {
                             state.project_dir = std::path::PathBuf::from(file_path_str);
                             let package_name = state.project_dir.file_name().unwrap().to_str().unwrap().replace(".", "_");
                             // Create a new cargo project if it doesn't exist
@@ -1193,6 +1198,12 @@ pub fn launcher() {
                             } else {
                                 eprintln!("Visual Studio Code is not installed or not in PATH.");
                                 state.terminal.log_error("Visual Studio Code is not installed or not in PATH");
+                            }
+
+                            // Save the .sc file
+                            if save_project_to_path(&sc_path_str, &state).is_err() {
+                                eprintln!("Failed to save .sc file to {:?}", sc_path_str);
+                                state.terminal.log_error(format!("Failed to save .sc file to {:?}", sc_path_str));
                             }
         
                             println!("Project saved to {:?}", state.project_dir);
