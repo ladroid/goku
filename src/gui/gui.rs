@@ -193,6 +193,10 @@ pub struct State {
     ambient_filters: Vec<AmbientFilterComponent>,
     #[serde(skip)]
     audio_player: Option<AudioPlayerComponent>,
+    #[serde(skip)]
+    window_width: i32,
+    #[serde(skip)]
+    window_height: i32,
 }
 
 impl State {
@@ -230,6 +234,8 @@ impl State {
             project_dir: std::path::PathBuf::new(),
             ambient_filters: Vec::new(),
             audio_player: None,
+            window_width: 0,
+            window_height: 0,
         }
     }
 
@@ -888,6 +894,8 @@ pub fn launcher() {
             match &state.selected_component {
                 Some(component) if component == "Scene" => {
                     ui.input_text("Window Name", &mut state.window_name).build();
+                    ui.input_int("Width", &mut state.window_width).build();
+                    ui.input_int("Height", &mut state.window_height).build();
                     if ui.button("OK") {
                         println!("Window name set to: {}", state.window_name);
                         state.terminal.log(format!("Window name set to: {}", state.window_name));
@@ -1242,6 +1250,8 @@ fn is_vscode_installed() -> bool {
 
 fn generate_template(state: &mut State) {
     let window_title = &state.window_name;
+    let window_width = state.window_width;
+    let window_height = state.window_height;
     let mut content = format!(r#"
 mod two_d;
 use nalgebra::Vector2;
@@ -1249,17 +1259,17 @@ use std::path::Path;
 use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
-    let mut window = Window::new("{}", 800, 600)?;
+    let mut window = Window::new("{}", {}, {})?;
 
     let mut last_frame_time = unsafe {{ sdl2::sys::SDL_GetTicks() }};
     let mut current_frame_time;
     let mut delta_time;
     
     // Create a camera object
-    let mut camera = Camera::new(Vector2::new(0, 0), Vector2::new(800, 600));
+    let mut camera = Camera::new(Vector2::new(0, 0), Vector2::new({}, {}));
 
     let texture_creator = window.canvas.texture_creator();
-    "#, window_title);
+    "#, window_title, window_width, window_height, window_width, window_height);
 
     // Create a vector to store game object variable names
     let mut game_objects = Vec::new();
