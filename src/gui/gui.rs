@@ -1100,23 +1100,26 @@ pub fn launcher() {
             });
 
         if state.open_preferences {
+            // Assume we have an open_preferences_flag that indicates whether the preferences window should be opened.
+            let mut open_preferences_flag = state.open_preferences;
+
             ui.window(state.translate("Preferences"))
                 .size([400.0, 300.0], imgui::Condition::FirstUseEver)
-                .opened(&mut state.open_preferences) // Allows you to close the window
+                .opened(&mut open_preferences_flag) // Use a temporary flag instead of borrowing state directly
                 .build(|| {
-                    ui.text("Preferences Categories:");
+                    ui.text(state.translate("Preferences Categories:"));
                     ui.separator();
                     ui.menu("General", || {
-                        ui.text("General settings");
+                        ui.text(state.translate("General settings"));
                         ui.separator();
                         // You can add sliders, checkboxes, and other controls for various general settings
-                        ui.checkbox("Enable Fullscreen", &mut state.general_settings.enable_fullscreen);
-                        ui.checkbox("Enable canvas present", &mut state.canvas_present);
-                        ui.checkbox("Enable VSync", &mut state.general_settings.enable_vsync);
+                        ui.checkbox(state.translate("Enable Fullscreen"), &mut state.general_settings.enable_fullscreen);
+                        ui.checkbox(state.translate("Enable canvas present"), &mut state.canvas_present);
+                        ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
                         // Add controls for general settings here
                     });
-                    ui.menu("Input", || {
-                        ui.checkbox("Enable Input Handler", &mut state.general_settings.enable_input_handler);
+                    ui.menu(state.translate("Input"), || {
+                        ui.checkbox(state.translate("Enable Input Handler"), &mut state.general_settings.enable_input_handler);
                         // Add controls for input settings here
                     });
                     let languages = ["English", "Deutsch", "Español", "Français", "日本語"];
@@ -1127,7 +1130,7 @@ pub fn launcher() {
                         .unwrap_or(0);
 
                     if ui.combo(
-                        "Language",
+                        state.translate("Language"),
                         &mut current_item,
                         &languages,
                         |language| language.to_string().into(),
@@ -1136,6 +1139,8 @@ pub fn launcher() {
                     }
                     // Add more categories as needed
                 });
+            // Update state with the flag value after the closure
+            state.open_preferences = open_preferences_flag;
         }       
 
         if state.open_text_editor {

@@ -13,6 +13,9 @@
         "Copy": "Copy",
         "Paste": "Paste",
         "View": "View",
+        "Themes": "Themes",
+        "Light Theme": "Light Theme",
+        "Dark Theme": "Dark Theme",
         "Search": "Search",
         "Text Editor": "Text Editor",
         "Terminal": "Terminal",
@@ -22,7 +25,14 @@
         "Help": "Help",
         "Documentation": "Documentation",
         "About": "About",
-        "General settings...": "General settings..."
+        "Preferences Categories:": "Preferences Categories:",
+        "General settings": "General settings",
+        "Enable Fullscreen": "Enable Fullscreen",
+        "Enable canvas present": "Enable canvas present",
+        "Enable VSync": "Enable VSync",
+        "Input": "Input",
+        "Enable Input Handler": "Enable Input Handler",
+        "Language": "Language"
     },
     "Français": {
         "File": "Fichier",
@@ -38,6 +48,9 @@
         "Copy": "Copier",
         "Paste": "Coller",
         "View": "Affichage",
+        "Themes": "Thèmes",
+        "Light Theme": "Thème Clair",
+        "Dark Theme": "Thème Sombre",
         "Search": "Rechercher",
         "Text Editor": "Éditeur de texte",
         "Terminal": "Terminal",
@@ -47,7 +60,14 @@
         "Help": "Aide",
         "Documentation": "Documentation",
         "About": "À propos",
-        "General settings...": "Paramètres généraux..."
+        "General settings": "Paramètres généraux",
+        "Preferences Categories:": "Catégories de Préférences:",
+        "Enable Fullscreen": "Activer le Plein Écran",
+        "Enable canvas present": "Activer la présentation du canevas",
+        "Enable VSync": "Activer VSync",
+        "Input": "Entrée",
+        "Enable Input Handler": "Activer le Gestionnaire d'Entrée",
+        "Language": "Langue"
     },
     "Deutsch": {
         "File": "Datei",
@@ -63,6 +83,9 @@
         "Copy": "Kopieren",
         "Paste": "Einfügen",
         "View": "Ansicht",
+        "Themes": "Themen",
+        "Light Theme": "Helles Thema",
+        "Dark Theme": "Dunkles Thema",
         "Search": "Suchen",
         "Text Editor": "Texteditor",
         "Terminal": "Terminal",
@@ -72,7 +95,14 @@
         "Help": "Hilfe",
         "Documentation": "Dokumentation",
         "About": "Über",
-        "General settings...": "Allgemeine Einstellungen..."
+        "General settings": "Allgemeine Einstellungen",
+        "Preferences Categories:": "Einstellungskategorien:",
+        "Enable Fullscreen": "Vollbildmodus aktivieren",
+        "Enable canvas present": "Canvas-Präsentation aktivieren",
+        "Enable VSync": "VSync aktivieren",
+        "Input": "Eingabe",
+        "Enable Input Handler": "Eingabehandler aktivieren",
+        "Language": "Sprache"
     },
     "Español": {
         "File": "Archivo",
@@ -88,6 +118,9 @@
         "Copy": "Copiar",
         "Paste": "Pegar",
         "View": "Ver",
+        "Themes": "Temas",
+        "Light Theme": "Tema Claro",
+        "Dark Theme": "Tema Oscuro",
         "Search": "Buscar",
         "Text Editor": "Editor de texto",
         "Terminal": "Terminal",
@@ -97,7 +130,14 @@
         "Help": "Ayuda",
         "Documentation": "Documentación",
         "About": "Acerca de",
-        "General settings...": "Configuración general..."
+        "General settings": "Configuración general",
+        "Preferences Categories:": "Categorías de Preferencias:",
+        "Enable Fullscreen": "Activar Pantalla Completa",
+        "Enable canvas present": "Activar presentación de canvas",
+        "Enable VSync": "Activar VSync",
+        "Input": "Entrada",
+        "Enable Input Handler": "Activar Manejador de Entrada",
+        "Language": "Idioma"
     },
     "日本語": {
         "File": "ファイル",
@@ -113,6 +153,9 @@
         "Copy": "コピー",
         "Paste": "貼り付け",
         "View": "表示",
+        "Themes": "テーマ",
+        "Light Theme": "ライトテーマ",
+        "Dark Theme": "ダークテーマ",
         "Search": "検索",
         "Text Editor": "テキストエディタ",
         "Terminal": "ターミナル",
@@ -122,6 +165,13 @@
         "Help": "ヘルプ",
         "Documentation": "ドキュメント",
         "About": "このプログラムについて",
-        "General settings...": "一般設定..."
+        "General settings": "一般設定",
+        "Preferences Categories:": "設定カテゴリ:",
+        "Enable Fullscreen": "フルスクリーンを有効にする",
+        "Enable canvas present": "キャンバス表示を有効にする",
+        "Enable VSync": "VSyncを有効にする",
+        "Input": "入力",
+        "Enable Input Handler": "入力ハンドラを有効にする",
+        "Language": "言語"
     }
 }
