@@ -139,6 +139,7 @@ struct TranslationRequest {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AmbientFilterComponent {
     pub intensity: f32,
+    pub color: [f32; 4], // RGBA color
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -991,7 +992,10 @@ pub fn launcher() {
                 Some(component) if component == "Ambient Filter" => {
                     if state.ambient_filters.is_empty() {
                         // Add a new AmbientFilterComponent with a default intensity
-                        state.ambient_filters.push(AmbientFilterComponent { intensity: 0.5 });
+                        state.ambient_filters.push(AmbientFilterComponent { 
+                            intensity: 0.5, 
+                            color: [1.0, 1.0, 1.0, 1.0], // White color 
+                        });
                     } else {
                         // If an AmbientFilterComponent already exists, update its intensity
                         if let Some(filter) = state.ambient_filters.last_mut() {
@@ -999,6 +1003,7 @@ pub fn launcher() {
                                 .step(0.01)
                                 .step_fast(0.1)
                                 .build();
+                            ui.color_edit4("Color", &mut filter.color);
                         }
                     }
                 },
@@ -1288,7 +1293,7 @@ fn generate_template(state: &mut State) {
 mod two_d;
 use nalgebra::Vector2;
 use std::path::Path;
-use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler}};
+use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler, AmbientFilter}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
     let mut window = Window::new("{}", {}, {})?;
@@ -1355,9 +1360,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
     'mainloop: loop {
         current_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
         delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
-        last_frame_time = current_frame_time;
-
-        window.canvas.clear();
     "#);
 
     if state.general_settings.enable_input_handler {
@@ -1375,6 +1377,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         // Update camera position to follow this game object (if needed)
         camera.update({}.get_position());
 
+        window.canvas.clear();
         // Render the game object
         if let Some(current_animation_tag) = &{}.texture_manager_anim.current_animation {{
             if let Some(animated_texture) = {}.texture_manager_anim.animations.get(current_animation_tag) {{
@@ -1394,14 +1397,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
     // Additional rendering code for AmbientFilter
     if state.components.iter().any(|c| c.name == "Ambient Filter") {
         // Loop through each AmbientFilter component for rendering
-        for (index, _) in state.ambient_filters.iter().enumerate() {
+        for (index, filter) in state.ambient_filters.iter().enumerate() {
+            // Convert each color component to an integer (0-255 range)
+            let red = (filter.color[0] * 255.0) as u8;
+            let green = (filter.color[1] * 255.0) as u8;
+            let blue = (filter.color[2] * 255.0) as u8;
+            let alpha = (filter.color[3] * 255.0) as u8;
             content.push_str(&format!(r#"
+        // Clear the light texture with an ambient color (e.g., dark blue)
+        light_texture{}.with_lock(None, |buffer: &mut [u8], pitch: usize| {{
+            for y in 0..600 {{
+                for x in 0..800 {{
+                    let offset = y * pitch + x * 4;
+                    buffer[offset] = {};       // Blue
+                    buffer[offset + 1] = {};   // Green
+                    buffer[offset + 2] = {};   // Red
+                    buffer[offset + 3] = {};             // Alpha
+                }}
+            }}
+        }}).unwrap();
         // Render the ambient light from filter {}
         light{}.render(&mut window.canvas, &mut light_texture{});
+        
         window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
         window.canvas.copy(&light_texture{}, None, None)?;
         window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
-        "#, index, index, index, index));
+        "#, index, blue, green, red, alpha, index, index, index, index));
             }
     }
 
