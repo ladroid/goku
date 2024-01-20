@@ -27,6 +27,9 @@ struct GeneralSettings {
     enable_vsync: bool,
     language: String,
     enable_input_handler: bool,
+    font_name: String,
+    font_size: f32,
+    font_change_requested: bool, // Add this
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -203,7 +206,7 @@ pub struct State {
 
 impl State {
     fn new() -> Self {
-        Self {
+        let mut state = Self {
             components: Vec::new(),
             selected_component: None,
             open_about: false,
@@ -218,6 +221,9 @@ impl State {
                 enable_vsync: false,
                 language: "English".to_string(),
                 enable_input_handler: false,
+                font_name: "ARIALUNI".to_string(),
+                font_size: 18.0,
+                font_change_requested: false,
             },
             gameobject_position: None,
             texture_path: None,
@@ -238,7 +244,26 @@ impl State {
             audio_player: None,
             window_width: 0,
             window_height: 0,
+        };
+
+        if let Err(e) = state.load_settings() {
+            eprintln!("Error loading settings: {}", e);
+            // Handle the error or provide default settings
         }
+        
+        state
+    }
+
+    fn save_settings(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let settings_json = serde_json::to_string(&self.general_settings)?;
+        std::fs::write("settings.json", settings_json)?;
+        Ok(())
+    }
+
+    fn load_settings(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let settings_json = std::fs::read_to_string("settings.json")?;
+        self.general_settings = serde_json::from_str(&settings_json)?;
+        Ok(())
     }
 
     fn load_translations(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -643,15 +668,21 @@ pub fn launcher() {
     io.config_flags |= imgui::ConfigFlags::DOCKING_ENABLE; // Enable Docking
     io.config_flags |= imgui::ConfigFlags::VIEWPORTS_ENABLE; // Enable Multi-Viewport / Platform Windows
 
+    let mut state = State::new();
+    if let Err(e) = state.load_translations("src/gui/translation.json") {
+        state.terminal.log_error(format!("Failed to load translations: {}", e));
+        // handle error appropriately
+    }
+
     /* setup platform and renderer, and fonts to imgui */
     let fonts = imgui.fonts();
-    let font_data = include_bytes!("ARIALUNI.TTF");
-    let font_size = 18.0; // You can adjust the size as needed
+    let font_path = format!("src/gui/fonts/{}.ttf", state.general_settings.font_name);
+    let font_data = std::fs::read(&font_path).unwrap();
     fonts.add_font(&[imgui::FontSource::TtfData {
-        data: font_data,
-        size_pixels: font_size,
+        data: &font_data,
+        size_pixels: state.general_settings.font_size,
         config: Some(imgui::FontConfig {
-            size_pixels: 18.0,
+            size_pixels: state.general_settings.font_size,
             oversample_h: 3,
             oversample_v: 1,
             pixel_snap_h: false,
@@ -678,12 +709,6 @@ pub fn launcher() {
     /* Initialize texture position variables */
     let mut texture_pos: Vec<(f32, f32)> = vec![(301.676, 22.346)];  // One position for each texture
     let mut texture_scale: f32 = 1.0;
-
-    let mut state = State::new();
-    if let Err(e) = state.load_translations("src/gui/translation.json") {
-        state.terminal.log_error(format!("Failed to load translations: {}", e));
-        // handle error appropriately
-    }
 
     /* start main loop */
     let mut event_pump = sdl.event_pump().unwrap();
@@ -985,6 +1010,7 @@ pub fn launcher() {
                             let tex = texture_creator.load_texture(&p).unwrap();
                             textures.push(tex);
                             texture_pos.push((301.676, 22.346)); // Add a new position for the new texture
+                            state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
                         }
                         state.texture_path = Some(texture.path.to_str().unwrap().to_string());
                     }                    
@@ -1117,6 +1143,13 @@ pub fn launcher() {
                         ui.checkbox(state.translate("Enable canvas present"), &mut state.canvas_present);
                         ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
                         // Add controls for general settings here
+                        ui.separator();
+                        if ui.input_text("Font Name", &mut state.general_settings.font_name).build() {
+                            state.general_settings.font_change_requested = true;
+                        }
+                        if ui.slider("Font Size", 10.0, 24.0, &mut state.general_settings.font_size) {
+                            state.general_settings.font_change_requested = true;
+                        }
                     });
                     ui.menu(state.translate("Input"), || {
                         ui.checkbox(state.translate("Enable Input Handler"), &mut state.general_settings.enable_input_handler);
@@ -1141,8 +1174,16 @@ pub fn launcher() {
                 });
             // Update state with the flag value after the closure
             state.open_preferences = open_preferences_flag;
-        }       
+        }
 
+        if state.general_settings.font_change_requested {
+            if let Err(e) = state.save_settings() {
+                eprintln!("Error saving settings: {}", e);
+                // Handle the error appropriately
+            }
+            state.general_settings.font_change_requested = false;
+        }
+       
         if state.open_text_editor {
             ui.window(state.translate("Text Editor"))
                 .size([600.0, 600.0], imgui::Condition::FirstUseEver)
