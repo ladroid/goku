@@ -32,7 +32,9 @@
         "Enable VSync": "Enable VSync",
         "Input": "Input",
         "Enable Input Handler": "Enable Input Handler",
-        "Language": "Language"
+        "Language": "Language",
+        "Font Name": "Font Name",
+        "Font Size": "Font Size"
     },
     "Français": {
         "File": "Fichier",
@@ -67,7 +69,9 @@
         "Enable VSync": "Activer VSync",
         "Input": "Entrée",
         "Enable Input Handler": "Activer le Gestionnaire d'Entrée",
-        "Language": "Langue"
+        "Language": "Langue",
+        "Font Name": "Nom de la Police",
+        "Font Size": "Taille de la Police"
     },
     "Deutsch": {
         "File": "Datei",
@@ -102,7 +106,9 @@
         "Enable VSync": "VSync aktivieren",
         "Input": "Eingabe",
         "Enable Input Handler": "Eingabehandler aktivieren",
-        "Language": "Sprache"
+        "Language": "Sprache",
+        "Font Name": "Schriftart",
+        "Font Size": "Schriftgröße"
     },
     "Español": {
         "File": "Archivo",
@@ -137,7 +143,9 @@
         "Enable VSync": "Activar VSync",
         "Input": "Entrada",
         "Enable Input Handler": "Activar Manejador de Entrada",
-        "Language": "Idioma"
+        "Language": "Idioma",
+        "Font Name": "Nombre de la Fuente",
+        "Font Size": "Tamaño de la Fuente"
     },
     "日本語": {
         "File": "ファイル",
@@ -172,6 +180,8 @@
         "Enable VSync": "VSyncを有効にする",
         "Input": "入力",
         "Enable Input Handler": "入力ハンドラを有効にする",
-        "Language": "言語"
+        "Language": "言語",
+        "Font Name": "フォント名",
+        "Font Size": "フォントサイズ"
     }
 }

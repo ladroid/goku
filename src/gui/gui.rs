@@ -1131,6 +1131,7 @@ pub fn launcher() {
 
             ui.window(state.translate("Preferences"))
                 .size([400.0, 300.0], imgui::Condition::FirstUseEver)
+                .flags(imgui::WindowFlags::NO_RESIZE)
                 .opened(&mut open_preferences_flag) // Use a temporary flag instead of borrowing state directly
                 .build(|| {
                     ui.text(state.translate("Preferences Categories:"));
@@ -1144,10 +1145,10 @@ pub fn launcher() {
                         ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
                         // Add controls for general settings here
                         ui.separator();
-                        if ui.input_text("Font Name", &mut state.general_settings.font_name).build() {
+                        if ui.input_text(state.translate("Font Name"), &mut state.general_settings.font_name).build() {
                             state.general_settings.font_change_requested = true;
                         }
-                        if ui.slider("Font Size", 10.0, 24.0, &mut state.general_settings.font_size) {
+                        if ui.slider(state.translate("Font Size"), 10.0, 24.0, &mut state.general_settings.font_size) {
                             state.general_settings.font_change_requested = true;
                         }
                     });
