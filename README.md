@@ -236,7 +236,7 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * add/improve particle system
 
-* improve engine's GUI as well as text editor (probably instead of built-in text editor make an integration with VSCode or other ide)
+* ~~improve engine's GUI as well as text editor (probably instead of built-in text editor make an integration with VSCode or other ide)~~
 
 * add blueprints (probably imgui node graph https://github.com/benmkw/imnodes-rs)
 
