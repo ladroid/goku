@@ -152,6 +152,14 @@ pub struct AudioPlayerComponent {
     pub loop_count: i32,
 }
 
+#[derive(Default, Serialize, Deserialize, Clone)]
+enum LightType {
+    #[default] 
+    None,
+    Point,
+    Spotlight,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     selected_component: Option<String>,
@@ -202,6 +210,12 @@ pub struct State {
     window_width: i32,
     #[serde(skip)]
     window_height: i32,
+    #[serde(skip)]
+    light_type: LightType,
+    #[serde(skip)]
+    light_color: [f32; 3],
+    #[serde(skip)]
+    light_png_path: String,
 }
 
 impl State {
@@ -244,6 +258,9 @@ impl State {
             audio_player: None,
             window_width: 0,
             window_height: 0,
+            light_type: LightType::None,
+            light_color: [0.0, 0.0, 0.0],
+            light_png_path: "".to_string(),
         };
 
         if let Err(e) = state.load_settings() {
@@ -1057,6 +1074,39 @@ pub fn launcher() {
                         ui.input_int("Volume", &mut audio_player.volume).build();
                         ui.input_int("Loop Count", &mut audio_player.loop_count).build();
                     }
+                },
+                Some(component) if component == "Light" => {
+                    let mut light_type = match state.light_type {
+                        LightType::None => 0,
+                        LightType::Point => 1,
+                        LightType::Spotlight => 2,
+                    };
+                    let light_type_names = ["None", "Point", "Spotlight"];
+                    if ui.combo("Type", &mut light_type, &light_type_names, |&x| std::borrow::Cow::Borrowed(x)) {
+                        state.light_type = match light_type {
+                            0 => LightType::None,
+                            1 => LightType::Point,
+                            2 => LightType::Spotlight,
+                            _ => unreachable!(),
+                        };
+                    }
+    
+                    ui.color_edit3("Color", &mut state.light_color);
+    
+                    if ui.button("Select PNG...") {
+                        let file = FileDialog::new()
+                            .add_filter("PNG Image", &["png"])
+                            .pick_file();
+    
+                        if let Some(file_path) = file {
+                            state.light_png_path = file_path.to_str().unwrap_or_default().to_string();
+                        } else {
+                            println!("No file chosen");
+                            state.terminal.log_error("No file chosen");
+                        }
+                    }
+    
+                    ui.text(format!("PNG Path: {}", state.light_png_path));
                 },                         
                 Some(component) => ui.text(component),
                 None => ui.text("No component selected"),
@@ -1402,6 +1452,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
     "#, audio_player.track_path, audio_player.loop_count, audio_player.volume));
     }
 
+    // Check if Light component is present and generate light code
+    let mut add_light_setup = false;
+    if let Some(_light) = state.components.iter().find(|c| c.name == "Light") {
+        match state.light_type {
+            LightType::Point => {
+                add_light_setup = true;
+                content.push_str(&format!(r#"
+    // Initialize Point Light
+    let light_texture = texture_creator.load_texture("{}")?;
+    let light = two_d::PointLight::new(
+        nalgebra::Vector2::new(400.0, 300.0), // You may want to replace these with dynamic values
+        100.0,  // Light radius
+        0.6,    // Light intensity
+        sdl2::pixels::Color::RGB({}, {}, {}) // Light color
+    );
+    let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
+    darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
+    "#, state.light_png_path, 
+       (state.light_color[0] * 255.0) as u8,
+       (state.light_color[1] * 255.0) as u8,
+       (state.light_color[2] * 255.0) as u8));
+            },
+            LightType::Spotlight => {
+                // Add code generation for Spotlight if applicable
+                add_light_setup = true;
+                content.push_str(&format!(r#"
+    // Initialize Spot Light
+    let mut spotlight_texture = texture_creator.load_texture("{}")?;
+    let spotlight = two_d::SpotLight::new(
+        nalgebra::Vector2::new(400.0, 300.0),
+        nalgebra::Vector2::new(0.0, -1.0),   // Pointing upwards
+        45.0,                                // 45-degree cone
+        200.0,
+        0.6,
+        sdl2::pixels::Color::RGB({}, {}, {})
+    );
+    let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
+    darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
+    "#, state.light_png_path, 
+        (state.light_color[0] * 255.0) as u8,
+        (state.light_color[1] * 255.0) as u8,
+        (state.light_color[2] * 255.0) as u8));
+            },
+            _ => {} // Handle other light types or no light
+        }
+    }
+
     // Inserting the main loop
     content.push_str(r#"
     'mainloop: loop {
@@ -1471,6 +1568,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
         window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
         "#, index, blue, green, red, alpha, index, index, index, index));
             }
+    }
+
+    // Insert the light rendering code inside the main loop
+    if add_light_setup {
+        content.push_str(r#"
+        // Render the light
+        window.canvas.with_texture_canvas(&mut darkness_texture, |canvas| {
+            canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 150)); // Semi-transparent black
+            canvas.clear();
+            light.render(canvas, &light_texture);
+        }).unwrap();
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::Mod);
+        window.canvas.copy(&darkness_texture, None, None).unwrap();
+        window.canvas.set_blend_mode(sdl2::render::BlendMode::None);
+        "#);
     }
 
     content.push_str(r#"
