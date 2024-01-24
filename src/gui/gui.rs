@@ -1125,7 +1125,7 @@ pub fn launcher() {
             }
 
             ui.popup("Add Component", || {
-                let mut component_types = ["Scene", "Texture", "GameObject", "Ambient Filter", "Layer", "Audio Player", "Particle System", "Light", "Physics", "AI"];
+                let mut component_types = ["Scene", "Texture", "GameObject", "Ambient Filter", "Audio Player", "Light"];
                 component_types.sort();
                 for component_type in &component_types {
                     if ui.selectable(component_type) {     
@@ -1390,7 +1390,7 @@ fn generate_template(state: &mut State) {
 mod two_d;
 use nalgebra::Vector2;
 use std::path::Path;
-use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler, AmbientFilter}};
+use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler, AmbientFilter, PointLight, SpotLight}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
     let mut window = Window::new("{}", {}, {})?;
