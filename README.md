@@ -240,6 +240,8 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * add blueprints (probably imgui node graph https://github.com/benmkw/imnodes-rs)
 
+* switch to wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
+
 * building games for mobiles iOS, Android
 
 * building games for consoles (PS4-5), Xbox, Nintendo Switch

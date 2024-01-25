@@ -1,11 +1,5 @@
-use glow::HasContext;
 use imgui::Context;
-use imgui_glow_renderer::AutoRenderer;
-use imgui_sdl2_support::SdlPlatform;
-use sdl2::{
-    event::Event,
-    video::{GLProfile, Window}
-};
+use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use std::path::Path;
 use rfd::FileDialog;
@@ -367,25 +361,6 @@ impl<'a> DisplayComponentTree<'a> {
     }    
 }
 
-// Create a new glow context.
-fn glow_context(window: &Window) -> glow::Context {
-    let gl = unsafe {
-        glow::Context::from_loader_function(|s| window.subsystem().gl_get_proc_address(s) as _)
-    };
-
-    unsafe {
-        gl.enable(glow::DEPTH_TEST);
-        gl.depth_func(glow::LEQUAL);
-    }
-
-    unsafe {
-        gl.polygon_offset(1.0, 1.0); // Set the factors to your needs
-        gl.enable(glow::POLYGON_OFFSET_FILL);
-    }
-
-    gl
-}
-
 #[allow(dead_code)]
 pub fn cut_selected_text(text: &str, range: std::ops::Range<usize>) -> (String, String) {
     let selected_text = text[range.clone()].to_string();
@@ -621,57 +596,36 @@ pub fn open_state() -> std::io::Result<Option<State>> {
     }
 }
 
-pub fn launcher() {
+pub fn launcher() -> Result<(), String> {
     /* initialize SDL and its video subsystem */
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
 
     /* hint SDL to initialize an OpenGL 3.3 core profile context */
-    let gl_attr = video_subsystem.gl_attr();
-
-    gl_attr.set_context_version(3, 3);
-    gl_attr.set_context_profile(GLProfile::Core);
-    gl_attr.set_double_buffer(true);
-    gl_attr.set_multisample_samples(4);
-    gl_attr.set_framebuffer_srgb_compatible(true);
+    /* create a new OpenGL context and make it current */
+    {
+        let gl_attr = video_subsystem.gl_attr();
+        gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
+        gl_attr.set_context_version(3, 3);
+    }
 
     /* create a new window, be sure to call opengl method on the builder when using glow! */
     let window = video_subsystem
         .window("goku engine", 1280, 720)
-        //.allow_highdpi()
+        .allow_highdpi()
         .opengl()
         .position_centered()
         .resizable()
         .build()
         .unwrap();
 
-    /* create a new OpenGL context and make it current */
-    let gl_context = window.gl_create_context().unwrap();
-    window.gl_make_current(&gl_context).unwrap();
-    unsafe {
-        sdl2::sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
-        sdl2::sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
-        sdl2::sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_STENCIL_SIZE, 8);
-        sdl2::sys::SDL_GL_SetAttribute(sdl2_sys::SDL_GLattr::SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-    }
+    let _gl_context = window.gl_create_context().expect("Couldn't create GL context");
+    gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
 
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut canvas = window.into_canvas().accelerated().present_vsync().build().unwrap();
 
     /* enable vsync to cap framerate */
     canvas.window().subsystem().gl_set_swap_interval(1).unwrap();
-
-    /* create new glow and imgui contexts */
-    let gl = glow_context(&canvas.window());
-
-    unsafe {
-        gl.enable(glow::DEPTH_TEST);
-        gl.depth_func(glow::LEQUAL);
-    }
-
-    unsafe {
-        gl.polygon_offset(1.0, 1.0); // Set the factors to your needs
-        gl.enable(glow::POLYGON_OFFSET_FILL);
-    }
     
     /* create context */
     let mut imgui = Context::create();
@@ -716,8 +670,9 @@ pub fn launcher() {
     }]);
     
     /* create platform and renderer */
-    let mut platform = SdlPlatform::init(&mut imgui);
-    let mut renderer = AutoRenderer::initialize(gl, &mut imgui).unwrap();
+    let window_ref = canvas.window();
+    let mut platform = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window_ref);
+    let renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| video_subsystem.gl_get_proc_address(s) as _);
 
     /* load texture from PNG file */
     let texture_creator = canvas.texture_creator();
@@ -740,7 +695,7 @@ pub fn launcher() {
         os: std::env::consts::OS.to_string(),
     };
 
-    'main: loop {
+    loop {
         for event in event_pump.poll_iter() {
             /* pass all events to imgui platform */
             platform.handle_event(&mut imgui, &event);
@@ -760,17 +715,17 @@ pub fn launcher() {
                 }
                 Event::Quit { .. } => {
                     state.canvas_present = true;
-                    break 'main;
+                    return Ok(());
                 }
                 _ => {}
             }
             if state.exit_requested {
-                break 'main;
+                return Ok(());
             }
         }
 
         /* call prepare_frame before calling imgui.new_frame() */
-        platform.prepare_frame(&mut imgui, &canvas.window(), &event_pump);
+        platform.prepare_frame(imgui.io_mut(), &canvas.window(), &event_pump.mouse_state());
 
         let ui = imgui.new_frame();
 
@@ -1352,10 +1307,12 @@ pub fn launcher() {
         }
 
         /* render */
-        let draw_data = imgui.render();
-
-        unsafe { renderer.gl_context().clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT) };
-        renderer.render(draw_data).unwrap();
+        unsafe {
+            gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+        platform.prepare_render(&ui, &canvas.window());
+        renderer.render(&mut imgui);
         canvas.window().gl_swap_window();
 
         if state.canvas_present {
