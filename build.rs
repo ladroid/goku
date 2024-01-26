@@ -26,5 +26,13 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=Metal");
         println!("cargo:rustc-link-lib=framework=QuartzCore");
         println!("cargo:rustc-link-lib=framework=UIKit");
+    } else if target.contains("windows") {
+        // Windows specific configuration
+        println!("cargo:rustc-link-search=native={}", out_dir.display());
+        println!("cargo:rustc-link-lib=dylib=SDL2");
+    } else if target.contains("darwin") {
+        // macOS specific configuration
+        println!("cargo:rustc-link-search=native={}", out_dir.display());
+        println!("cargo:rustc-link-lib=framework=SDL2");
     }
 }
