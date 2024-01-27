@@ -21,7 +21,7 @@ pub struct Particle {
 
 #[allow(dead_code)]
 impl Particle {
-    fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: sdl2::pixels::Color) -> Self {
+    pub fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: sdl2::pixels::Color) -> Self {
         Particle {
             x,
             y,
