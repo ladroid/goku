@@ -226,6 +226,8 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 
 * make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and imgui)
 
+* combine with wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
+
 * improve physics
 
 * add/improve UI system (make possible to add image for buttons)
@@ -243,8 +245,6 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 * ~~improve engine's GUI as well as text editor (probably instead of built-in text editor make an integration with VSCode or other ide)~~
 
 * add blueprints (probably imgui node graph https://github.com/benmkw/imnodes-rs)
-
-* switch to wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
 
 * building games for mobiles iOS, Android
 
