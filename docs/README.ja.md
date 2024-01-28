@@ -1,4 +1,8 @@
-# goku
+# Goku Engine
+
+<p align="center">
+    <img src="../docs/image/Goku_logo.png" width="400" height="400" />
+</p>
 
 ![GitHub Workflow Status](https://img.shields.io/github/commit-activity/t/ladroid/goku)
 [![GitHub Repo stars](https://img.shields.io/github/stars/ladroid/goku)](https://github.com/ladroid/goku)
@@ -9,13 +13,13 @@
 [ [English](../README.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md) | [日本語](README.ja.md) ]
 
 
-gokuはRust用の2Dゲーム開発アプリケーションであり（将来的には3Dゲームとの統合が計画されています）、完全にRustで書かれています。
+GokuはRust用の2Dゲーム開発アプリケーションであり（将来的には3Dゲームとの統合が計画されています）、完全にRustで書かれています。
 
 **macOS**、**Windows**、および**Linux**で利用可能です。
 
 現在はSDL2に基づいています。
 
-gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）です。以下の機能を提供します：
+Gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）です。以下の機能を提供します：
 
 * ウィンドウとメインループ
 
@@ -311,4 +315,4 @@ VC開発ライブラリには静的ライブラリが含まれていないため
 [GitHub Discussion](https://docs.github.com/en/discussions/quickstart)
 
 ## ライセンス
-gokuはApacheライセンスバージョン2.0の下でライセンスされています。[LICENSE](https://pages.github.com/)ファイルを参照してください。
+GokuはApacheライセンスバージョン2.0の下でライセンスされています。[LICENSE](https://pages.github.com/)ファイルを参照してください。

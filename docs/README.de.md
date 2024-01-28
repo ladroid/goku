@@ -1,4 +1,8 @@
-# goku
+# Goku Engine
+
+<p align="center">
+    <img src="../docs/image/Goku_logo.png" width="400" height="400" />
+</p>
 
 ![GitHub Workflow Status](https://img.shields.io/github/commit-activity/t/ladroid/goku)
 [![GitHub Repo stars](https://img.shields.io/github/stars/ladroid/goku)](https://github.com/ladroid/goku)
@@ -9,13 +13,13 @@
 [ [Englisch](../README.md) | [Deutsch](README.de.md) | [Spanisch](README.es.md) | [Französisch](README.fr.md) | [日本語](README.ja.md) ]
 
 
-goku ist eine 2D-Spieleentwicklungsanwendung für Rust (in Zukunft Integration mit 3D-Spielen). Geschrieben rein in Rust.
+Goku ist eine 2D-Spieleentwicklungsanwendung für Rust (in Zukunft Integration mit 3D-Spielen). Geschrieben rein in Rust.
 
 Es ist verfügbar für **macOS**, **Windows** und **Linux**.
 
 Derzeit basiert es auf SDL2.
 
-goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
+Goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
 
 * ein Fenster und eine Hauptschleife
 
@@ -27,7 +31,7 @@ goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächl
 
 * GUI-Schnittstelle für die Entwicklung
 
-<ins>Drittanbieter-Bibliotheken, die derzeit von goku verwendet werden:</ins>
+<ins>Drittanbieter-Bibliotheken, die derzeit von Goku verwendet werden:</ins>
 
 * SDL2
 
@@ -309,4 +313,4 @@ Die eingereichte Pull-Anfrage wird als Zustimmung zur Veröffentlichung unter de
 [GitHub-Diskussion](https://docs.github.com/en/discussions/quickstart)
 
 ## Lizenz
-goku ist unter der Apache-Lizenz Version 2.0 lizenziert. Siehe [LIZENZ](https://pages.github.com/) Datei.
+Goku ist unter der Apache-Lizenz Version 2.0 lizenziert. Siehe [LIZENZ](https://pages.github.com/) Datei.
