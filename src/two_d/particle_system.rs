@@ -6,6 +6,12 @@ use sdl2::render::Canvas;
 
 use rand::Rng;
 
+#[derive(Clone, Copy)]
+pub enum ParticleShape {
+    Rect, // Rectangle shape
+    Circle, // Circle shape
+}
+
 // particle system +
     // Shader +
 pub struct Particle {
@@ -17,11 +23,12 @@ pub struct Particle {
     pub size: u32,
     pub color: sdl2::pixels::Color,
     pub alpha: u8,
+    pub shape: ParticleShape,
 }
 
 #[allow(dead_code)]
 impl Particle {
-    pub fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: sdl2::pixels::Color) -> Self {
+    pub fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: sdl2::pixels::Color, shape: ParticleShape) -> Self {
         Particle {
             x,
             y,
@@ -31,6 +38,7 @@ impl Particle {
             size: 2,
             color,
             alpha: 255,
+            shape, // Set the shape
         }
     }
 
@@ -49,12 +57,33 @@ impl Particle {
 
     pub fn render<T: sdl2::render::RenderTarget>(&self, canvas: &mut Canvas<T>) {
         canvas.set_draw_color(sdl2::pixels::Color::RGBA(self.color.r, self.color.g, self.color.b, self.alpha));
-        canvas.fill_rect(Rect::new(self.x as i32, self.y as i32, self.size, self.size)).unwrap();
-    }
+        match self.shape {
+            ParticleShape::Rect => {
+                canvas.fill_rect(Rect::new(self.x as i32, self.y as i32, self.size, self.size)).unwrap();
+            }
+            ParticleShape::Circle => {
+                let center_x = self.x as f32;
+                let center_y = self.y as f32;
+                let radius = self.size as f32 / 2.0;
+                // Draw filled circle
+                for angle in 0..360 {
+                    let radian = angle as f32 * std::f32::consts::PI / 180.0;
+                    let x = radian.cos() * radius + center_x;
+                    let y = radian.sin() * radius + center_y;
+                    // Calculate the topmost point for the vertical line to fill the circle
+                    let top_y = center_y - (y - center_y).abs();
+                    for fill_y in top_y as i32..=y as i32 {
+                        canvas.draw_point(sdl2::rect::Point::new(x as i32, fill_y)).unwrap();
+                    }
+                }
+
+            }
+        }
+    }    
 }
 
 #[allow(dead_code)]
-pub fn spawn_particles_sparks(particles: &mut Vec<Particle>, x: i32, y: i32, count: usize) {
+pub fn spawn_particles_sparks(particles: &mut Vec<Particle>, x: i32, y: i32, count: usize, shape: ParticleShape) {
     let mut rng = rand::thread_rng();
     for _ in 0..count {
         let angle = rng.gen_range(0.0..std::f32::consts::TAU);
@@ -64,12 +93,12 @@ pub fn spawn_particles_sparks(particles: &mut Vec<Particle>, x: i32, y: i32, cou
         let life = rng.gen_range(0.5..2.5);
         let color = sdl2::pixels::Color::RGBA(123, 56, 89, 255);
 
-        particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color));
+        particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color, shape));
     }
 }
 
 #[allow(dead_code)]
-pub fn spawn_particles_fires(particles: &mut Vec<Particle>, x: i32, y: i32, count: usize) {
+pub fn spawn_particles_fires(particles: &mut Vec<Particle>, x: i32, y: i32, count: usize, shape: ParticleShape) {
     let mut rng = rand::thread_rng();
     for _ in 0..count {
         let angle = rng.gen_range(std::f32::consts::PI..std::f32::consts::TAU);
@@ -83,12 +112,12 @@ pub fn spawn_particles_fires(particles: &mut Vec<Particle>, x: i32, y: i32, coun
             _ => sdl2::pixels::Color::RGB(254, 253, 153),
         };
 
-        particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color));
+        particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color, shape));
     }
 }
 
 #[allow(dead_code)]
-pub fn spawn_particles_rain(particles: &mut Vec<Particle>, screen_width: u32, count: usize) {
+pub fn spawn_particles_rain(particles: &mut Vec<Particle>, screen_width: u32, count: usize, shape: ParticleShape) {
     let mut rng = rand::thread_rng();
     
     for _ in 0..count {
@@ -99,6 +128,6 @@ pub fn spawn_particles_rain(particles: &mut Vec<Particle>, screen_width: u32, co
         let life = rng.gen_range(2.0..5.0); // life of raindrop
         let color = sdl2::pixels::Color::RGBA(0, 0, 255, 255); // blue color for rain
         
-        particles.push(Particle::new(x, y, x_vel, y_vel, life, color));
+        particles.push(Particle::new(x, y, x_vel, y_vel, life, color, shape));
     }
 }

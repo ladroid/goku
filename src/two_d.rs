@@ -31,6 +31,7 @@ pub use physics::RigidBody;
 
 pub mod particle_system;
 pub use particle_system::Particle;
+pub use particle_system::ParticleShape;
 
 pub mod shapes;
 pub use shapes::Shape2D;

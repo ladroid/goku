@@ -263,7 +263,7 @@ You can override the Python interpreter by setting the `PYO3_PYTHON` environment
 
 * profiler improve
 
-* add/improve particle system
+* ~~add/improve particle system~~
 
 * ~~improve engine's GUI as well as text editor (probably instead of built-in text editor make an integration with VSCode or other ide)~~
 

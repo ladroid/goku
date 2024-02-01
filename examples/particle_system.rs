@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if input_handler.is_mouse_button_pressed() {
             let (x, y) = input_handler.get_mouse_position();
             for _ in 0..5 {
-                two_d::spawn_particles_fires(&mut particles, x, y, 10);
+                two_d::spawn_particles_fires(&mut particles, x, y, 10, two_d::Particle::ParticleShape::Rect);
             }
         }   
 
