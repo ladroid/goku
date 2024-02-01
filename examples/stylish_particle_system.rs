@@ -85,23 +85,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut event_pump = window.sdl_context.event_pump().unwrap();
 
     let mut particles: Vec<two_d::Particle> = Vec::new();
-    let mut last_update = std::time::Instant::now();
-    let mut last_spawn_time = std::time::Instant::now();
-    let spawn_interval = std::time::Duration::from_secs(3); // Change interval as needed
+    let mut last_update = Instant::now();
+    let mut last_spawn_time = Instant::now();
+    let spawn_interval = Duration::from_secs(3); // Change interval as needed
     let spawn_count = 20; // Number of particles to spawn each time
 
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit {..} |
-                sdl2::event::Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Escape), .. } => {
+                Event::Quit {..} |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 },
                 _ => {}
             }
         }
 
-        let now = std::time::Instant::now();
+        let now = Instant::now();
         let delta = now.duration_since(last_update);
         let delta_time = delta.as_secs_f32();
         last_update = now;
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if last_spawn_time.elapsed() >= spawn_interval {
             //spawn_particles_stardust(&mut particles, 800, 600, spawn_count);
             spawn_particles_swirling_leaves(&mut particles, 800, 600, spawn_count, two_d::ParticleShape::Circle);
-            last_spawn_time = std::time::Instant::now();
+            last_spawn_time = Instant::now();
         }
 
         // Update and render particles
@@ -119,7 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             p.life > 0.0
         });
 
-        window.canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+        window.canvas.set_draw_color(Color::RGB(0, 0, 0));
         window.canvas.clear();
 
         for particle in &particles {
@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         window.canvas.present();
-        ::std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60));
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 
     Ok(())
