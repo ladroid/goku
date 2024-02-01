@@ -168,5 +168,5 @@ for epoch in range(num_epochs):
 print("Training complete")
 
 # Save models
-torch.save(generator.state_dict(), 'pixel_character_generator_GAN_v3.pth')
-torch.save(discriminator.state_dict(), 'pixel_character_discriminator_v3.pth')
+torch.save(generator.state_dict(), 'pixel_character_generator_GAN.pth')
+torch.save(discriminator.state_dict(), 'pixel_character_discriminator.pth')

@@ -40,7 +40,7 @@ class Generator(nn.Module):
 
 # Load the trained Generator model
 generator = Generator()
-generator.load_state_dict(torch.load('/Projects/GameNewAIAlgo/pixel_character_generation/pixel_character_generator_GAN.pth'))
+generator.load_state_dict(torch.load('pixel_character_generator_GAN.pth'))
 generator.eval()  # Set to evaluation mode
 
 # Function to generate a single image with post-processing
