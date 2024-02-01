@@ -19,11 +19,46 @@ use crate::gui::main_functionality::save_project;
 use crate::gui::main_functionality::save_project_to_path;
 use crate::gui::main_functionality::execute_command;
 use crate::gui::main_functionality::handle_two_d_module;
+use crate::deepl::deepl::call_python_add_function;
+
+fn sdl_surface_to_gl_texture(surface: sdl2::surface::Surface) -> Result<u32, String> {
+    let mut texture_id: u32 = 0;
+
+    unsafe {
+        gl::GenTextures(1, &mut texture_id);
+        gl::BindTexture(gl::TEXTURE_2D, texture_id);
+
+        // Set texture parameters
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        let format = match surface.pixel_format_enum() {
+            sdl2::pixels::PixelFormatEnum::RGB24 => gl::RGB,
+            sdl2::pixels::PixelFormatEnum::RGBA32 => gl::RGBA,
+            _ => return Err("Unsupported pixel format".to_string()),
+        };
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            format as i32,
+            surface.width() as i32,
+            surface.height() as i32,
+             0,
+            format,
+            gl::UNSIGNED_BYTE,
+            surface.without_lock().unwrap().as_ptr() as *const _,
+        );
+    }
+
+    Ok(texture_id)
+}
 
 pub fn launcher() -> Result<(), String> {
     /* initialize SDL and its video subsystem */
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
+    let _image_context = sdl2::image::init(sdl2::image::InitFlag::PNG)?;
 
     /* hint SDL to initialize an OpenGL 3.3 core profile context */
     /* create a new OpenGL context and make it current */
@@ -265,6 +300,39 @@ pub fn launcher() -> Result<(), String> {
 
                 if ui.menu_item(state.translate("Text Editor")) {  // New menu item
                     state.open_text_editor = !state.open_text_editor;  // Toggle text editor open/close
+                }
+                if ui.menu_item("Character Generator") {
+                    match call_python_add_function() {
+                        Ok(image_path) => {
+                            // Assuming `sdl_surface_to_gl_texture` is a function that takes an SDL2 surface and returns an OpenGL texture ID
+                            // Load the image into an SDL2 surface
+                            match sdl2::image::LoadSurface::from_file(&image_path) {
+                                Ok(surface) => {
+                                    match sdl_surface_to_gl_texture(surface) {
+                                        Ok(tex_id) => {
+                                            // Store this `tex_id` somewhere accessible for rendering
+                                            state.dynamic_texture_id = Some(tex_id);
+                                            println!("Image loaded successfully: {}", image_path);
+                                            state.terminal.log(format!("Image loaded successfully: {}", image_path));
+                                        },
+                                        Err(e) => {
+                                            println!("Failed to convert SDL2 surface to OpenGL texture: {}", e);
+                                            state.terminal.log_error(format!("Failed to convert SDL2 surface to OpenGL texture: {}", e));
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    println!("Failed to load image: {}", e);
+                                    state.terminal.log_error(format!("Failed to load image: {}", e));
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            println!("Python function execution failed: {}", e);
+                            state.terminal.log_error(format!("Python function execution failed: {}", e));
+                        },
+                    }
+                    state.open_image_view = !state.open_image_view;
                 }
             });
             ui.menu(state.translate("Tools"), || {
@@ -613,7 +681,22 @@ pub fn launcher() -> Result<(), String> {
             }
             state.general_settings.font_change_requested = false;
         }
-       
+        
+        if state.open_image_view {
+            ui.window("Image Window")
+            .size([300.0, 300.0], imgui::Condition::FirstUseEver)
+            .opened(&mut state.open_image_view)
+            .build(|| {
+                // Check if we have a valid texture ID and display it
+                if let Some(tex_id) = state.dynamic_texture_id {
+                    let image = imgui::Image::new(imgui::TextureId::from(tex_id as usize), [300.0, 300.0]);
+                    image.build(&ui);
+                } else {
+                    ui.text("No image loaded.");
+                }
+            });
+        }
+
         if state.open_text_editor {
             ui.window(state.translate("Text Editor"))
                 .size([600.0, 600.0], imgui::Condition::FirstUseEver)

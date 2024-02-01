@@ -31,6 +31,8 @@ Goku is focused, lightweight and has few dependencies (mostly SDL2). It provides
 
 * GUI interface for development
 
+* Pixel character generator using AI
+
 <ins>third party libraries which used Goku currently:</ins>
 
 * SDL2
@@ -136,6 +138,23 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 - also enable the `bundled` feature, which will build a static library for you; or
 - use a static SDL2 library from vcpkg as described below.
 
+### Pixel Character Generator Setup
+For the new feature pixel character generator make sure that Python 3 and PyTorch is installed. Currently the AI is written in Python however there is a plan to rewrite it in Rust by using [tch-rs](https://github.com/LaurentMazare/tch-rs).
+
+#### How to install PyTorch
+> pip3 install torch torchvision torchaudio
+
+For more information chack out [here](https://pytorch.org/get-started/locally/)
+
+#### How to set up PyO3
+PyO3 uses a build script (backed by the pyo3-build-config crate) to determine the Python version and set the correct linker arguments. By default it will attempt to use the following in order:
+
+* Any active Python virtualenv.
+* The python executable (if it's a Python 3 interpreter).
+* The python3 executable.
+
+You can override the Python interpreter by setting the `PYO3_PYTHON` environment variable, e.g. `PYO3_PYTHON=python3.6`, `PYO3_PYTHON=/usr/bin/python3.9`, or even a PyPy interpreter `PYO3_PYTHON=pypy3`.
+
 ## Features
 
 * Graphics:
@@ -227,6 +246,10 @@ The MSVC development libraries provided by http://libsdl.org/ don't include a st
 * make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and imgui)
 
 * combine with wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
+
+* improve GAN model for pixel character generator
+
+* rewrite GAN model in Rust using [tch-rs](https://github.com/LaurentMazare/tch-rs)
 
 * improve physics
 

@@ -20,6 +20,7 @@ glow = "0.12.2"
 webbrowser = "0.8.11"
 chrono = "0.4.31"
 copypasta = "0.10.0"
+pyo3 = { version = "0.20.2", features = ["extension-module", "auto-initialize"] }
 
 [dependencies.sdl2]
 version = "0.36"

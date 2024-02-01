@@ -64,6 +64,10 @@ pub struct State {
     pub light_color: [f32; 3],
     #[serde(skip)]
     pub light_png_path: String,
+    #[serde(skip)]
+    pub open_image_view: bool,
+    #[serde(skip)]
+    pub dynamic_texture_id: Option<u32>,
 }
 
 impl State {
@@ -109,6 +113,8 @@ impl State {
             light_type: LightType::None,
             light_color: [0.0, 0.0, 0.0],
             light_png_path: "".to_string(),
+            open_image_view: false,
+            dynamic_texture_id: None,
         };
 
         if let Err(e) = state.load_settings() {

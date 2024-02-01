@@ -1,4 +1,5 @@
 mod gui;
+mod deepl;
 use crate::gui::gui::launcher;
 
 fn main() {
