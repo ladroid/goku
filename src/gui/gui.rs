@@ -338,7 +338,7 @@ pub fn launcher() -> Result<(), String> {
             ui.menu(state.translate("Tools"), || {
                 ui.menu(state.translate("Build"), || {
                     if ui.menu_item("Web") {
-                        match execute_code_web(&state.text_editor_content) {
+                        match execute_code_web(&mut state) {
                             Ok(_) => {
                                 println!("Execution successful!");
                                 state.terminal.log("Execution successful!");

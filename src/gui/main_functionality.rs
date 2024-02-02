@@ -64,57 +64,46 @@ pub fn handle_two_d_module(temp_dir: &std::path::PathBuf) -> Result<(), Box<dyn 
 }
 
 #[allow(dead_code)]
-pub fn execute_code_web(code: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut temp_dir = std::env::temp_dir();
-    temp_dir.push("temp_cargo_project");
+pub fn handle_emscripten_module(temp_dir: &std::path::PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    let two_d_src = Path::new("src/emscripten.rs");
+    let two_d_dest = temp_dir.join("src").join("emscripten.rs");
+    std::fs::copy(&two_d_src, &two_d_dest)?;
 
-    // Ensure temp_dir exists
-    if !temp_dir.exists() {
-        // Create a new cargo project in the temp_dir
-        let status = std::process::Command::new("cargo")
-            .arg("new")
-            .arg("--bin")
-            .arg(&temp_dir)
-            .status()?;
+    let two_d_dir = temp_dir.join("src").join("emscripten");
+    std::fs::create_dir_all(&two_d_dir)?;
 
-        if !status.success() {
-            return Err("Failed to create a new cargo project".into());
+    let original_two_d_path = std::env::current_dir()?.join("src").join("emscripten");
+    for entry in std::fs::read_dir(original_two_d_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            let filename = path.file_name().ok_or("Failed to get file name")?.to_owned();
+            std::fs::copy(&path, two_d_dir.join(filename))?;
         }
     }
+    Ok(())
+}
 
-    // Copy the Emscripten SDK directory to temp_dir
-    let source_path = std::path::PathBuf::from("emsdk/");
-    let destination_path = temp_dir.join("emsdk");
+#[allow(dead_code)]
+pub fn execute_code_web(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
+    let project_dir = &state.project_dir; // Assuming `project_dir` is stored in state
+    println!("{:?}", project_dir);
+    
+    handle_emscripten_module(project_dir)?;
 
-    // Copy directory contents
-    copy_directory(&source_path, &destination_path)?;
+    // Set the EMCC_CFLAGS environment variable for SDL2 support
+    std::env::set_var("EMCC_CFLAGS", "-s USE_SDL=2");
 
-    // Install Emscripten in the emsdk directory within temp_dir
-    let emsdk_env_cmd_path = destination_path.join(if cfg!(target_os = "windows") { "emsdk_env.bat" } else { "emsdk_env.sh" });
-    let emsdk_cmd_path = destination_path.join("emsdk");
+    // Build the cargo project for WebAssembly
+    let build_status = std::process::Command::new("cargo")
+        .args(&["build", "--target=asmjs-unknown-emscripten"])
+        .current_dir(project_dir)
+        .status()?;
 
-    execute_command(if cfg!(target_os = "windows") { "cmd" } else { "sh" }, &emsdk_env_cmd_path)?;
-    execute_command(if cfg!(target_os = "windows") { "cmd" } else { "sh" }, &emsdk_cmd_path.join("activate").join("latest"))?;
-
-    // Write code to main.rs
-    let main_rs_path = temp_dir.join("src").join("main.rs");
-    std::fs::write(&main_rs_path, code)?;
-
-    // Copy two_d.rs
-    let two_d_path = Path::new("src/two_d.rs");
-    let destination_two_d_path = temp_dir.join("src").join("two_d.rs");
-    std::fs::copy(two_d_path, &destination_two_d_path)?;
-
-    // Append dependencies to Cargo.toml
-    let cargo_toml_path = temp_dir.join("Cargo.toml");
-    append_dependencies_to_cargo_toml(&cargo_toml_path)?;
-
-    // Create and write Web.toml
-    let web_toml_path = temp_dir.join("Web.toml");
-    create_web_toml(&web_toml_path)?;
-
-    // Cleanup
-    std::fs::remove_dir_all(&temp_dir)?;
+    if !build_status.success() {
+        state.terminal.log_error("Failed to compile the code for WebAssembly");
+        return Err("Failed to compile the code for WebAssembly".into());
+    }
 
     Ok(())
 }
@@ -145,19 +134,19 @@ pub fn append_dependencies_to_cargo_toml(cargo_toml_path: &Path) -> Result<(), B
     Ok(())
 }
 
-fn create_web_toml(web_toml_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let web_toml_content = r#"
-default-target = "wasm32-unknown-emscripten"
+// fn create_web_toml(web_toml_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+//     let web_toml_content = r#"
+// default-target = "wasm32-unknown-emscripten"
 
-[target.emscripten]
-link-args = [
-    "-s", "WASM=1",
-    "-s", "USE_SDL=2",
-]
-"#;
-    std::fs::write(web_toml_path, web_toml_content)?;
-    Ok(())
-}
+// [target.emscripten]
+// link-args = [
+//     "-s", "WASM=1",
+//     "-s", "USE_SDL=2",
+// ]
+// "#;
+//     std::fs::write(web_toml_path, web_toml_content)?;
+//     Ok(())
+// }
 
 #[allow(dead_code)]
 pub fn execute_command(command: &str, args: &Path) -> Result<(), Box<dyn std::error::Error>> {
