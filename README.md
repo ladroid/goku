@@ -155,6 +155,14 @@ PyO3 uses a build script (backed by the pyo3-build-config crate) to determine th
 
 You can override the Python interpreter by setting the `PYO3_PYTHON` environment variable, e.g. `PYO3_PYTHON=python3.6`, `PYO3_PYTHON=/usr/bin/python3.9`, or even a PyPy interpreter `PYO3_PYTHON=pypy3`.
 
+Sometimes PyO3 can give an error with linking Python libs for this case environment variable can be used:
+
+For Windows:
+> $env:LIB += ";<location_of_python_lib>"
+
+For UNIX:
+> export LIB=$LIB:/location_of_python_lib
+
 ## Features
 
 * Graphics:

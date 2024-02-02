@@ -1,5 +1,6 @@
 mod gui;
 mod deepl;
+mod emscripten;
 use crate::gui::gui::launcher;
 
 fn main() {

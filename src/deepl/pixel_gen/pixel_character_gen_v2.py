@@ -3,6 +3,8 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from PIL import Image, ImageFilter
+import os
+import sys
 
 # Define the Generator class (must be identical to the one used for training)
 class Generator(nn.Module):
@@ -40,7 +42,16 @@ class Generator(nn.Module):
 
 # Load the trained Generator model
 generator = Generator()
-generator.load_state_dict(torch.load('pixel_character_generator_GAN.pth'))
+# Use os.path.join to construct the file path in a platform-independent way
+here = os.path.dirname(os.path.abspath(__file__))
+
+# Check if the operating system is Windows
+if sys.platform.startswith('win'):
+    path_to_file = os.path.join(here, 'src', 'deepl', 'pixel_gen', 'pixel_character_generator_GAN.pth')
+else:  # UNIX-based OS (Linux/Mac)
+    path_to_file = os.path.join(here, 'src', 'deepl', 'pixel_gen', 'pixel_character_generator_GAN.pth')
+
+generator.load_state_dict(torch.load(path_to_file))
 generator.eval()  # Set to evaluation mode
 
 # Function to generate a single image with post-processing
