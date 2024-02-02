@@ -245,7 +245,6 @@ For UNIX:
 
 1. Press Tools
 2. Press Build
-3. run this command in the directory where it was build `cargo web start wasm32-unknown-emscripten` or `cargo web build --target wasm32-unknown-emscripten`
 
 ## TODO (is prioritised)
 
