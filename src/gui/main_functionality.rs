@@ -84,12 +84,23 @@ pub fn handle_emscripten_module(temp_dir: &std::path::PathBuf) -> Result<(), Box
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
+const EMSDK: &str = "emsdk.bat";
+#[cfg(not(target_os = "windows"))]
+const EMSDK: &str = "./emsdk";
+
+#[cfg(target_os = "windows")]
+const EMSDK_ENV: &str = "emsdk_env.bat";
+#[cfg(not(target_os = "windows"))]
+const EMSDK_ENV: &str = "source ./emsdk_env.sh";
+
 #[allow(dead_code)]
 pub fn execute_code_web(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
     let project_dir = &state.project_dir; // Assuming `project_dir` is stored in state
     println!("{:?}", project_dir);
-    
-    handle_emscripten_module(project_dir)?;
+
+    // Assuming `handle_emscripten_module` is a function that sets up Emscripten
+    handle_emscripten_setup(project_dir.to_str().unwrap())?;
 
     // Set the EMCC_CFLAGS environment variable for SDL2 support
     std::env::set_var("EMCC_CFLAGS", "-s USE_SDL=2");
@@ -103,6 +114,48 @@ pub fn execute_code_web(state: &mut State) -> Result<(), Box<dyn std::error::Err
     if !build_status.success() {
         state.terminal.log_error("Failed to compile the code for WebAssembly");
         return Err("Failed to compile the code for WebAssembly".into());
+    }
+
+    Ok(())
+}
+
+fn handle_emscripten_setup(project_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Clone the Emscripten SDK
+    std::process::Command::new("git")
+        .args(&["clone", "https://github.com/emscripten-core/emsdk.git"])
+        .current_dir(project_dir)
+        .status()?;
+
+    let emsdk_path = format!("{}/emsdk", project_dir);
+
+    // Enter the EMSDK directory
+    std::env::set_current_dir(&emsdk_path)?;
+
+    // Fetch the latest version of the emsdk
+    std::process::Command::new("git")
+        .args(&["pull"])
+        .status()?;
+
+    // Download and install the latest SDK tools
+    std::process::Command::new(EMSDK)
+        .args(&["install", "latest"])
+        .status()?;
+
+    // Make the "latest" SDK "active"
+    std::process::Command::new(EMSDK)
+        .args(&["activate", "latest"])
+        .status()?;
+
+    // Activate PATH and other environment variables in the current terminal
+    if cfg!(target_os = "windows") {
+        std::process::Command::new("cmd")
+            .args(&["/C", EMSDK_ENV])
+            .status()?;
+    } else {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(EMSDK_ENV)
+            .status()?;
     }
 
     Ok(())

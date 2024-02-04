@@ -244,7 +244,7 @@ For UNIX:
 ## How to build for Web
 
 1. Press Tools
-2. Press Build
+2. Press Build and choose Web
 
 ## TODO (is prioritised)
 

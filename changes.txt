@@ -1,3 +1,19 @@
+0.1.3 []
+1. GUI: Move input handler into Preferences and remove unused parts of preferences
+2. GUI: Add Ambinet Filter Component
+3. GUI: Add Audio Player
+    1. Modify GUI: Add file dialogue for track path in Audio Player Component
+4. Modify GUI: Modify saving part and logging
+5. Modify GUI: Add build possibility on Windows, Linux and MacOS
+6. Modify GUI: Modify ambinet filter by choosing a color
+7. Modify GUI: In the Preferences possible to change font and font size. Will be saved in settings.json
+8. Modify GUI: Add Light component
+9. Modify GUI: Split one big file gui.rs into small sub-files
+10. Major update: Add a deep learning model for generating pixel character and modify GUI to show it
+11. Improve Particle System by adding new shape - circle
+12. Major update: Fix bug with system for AI model and add new feature emscripten for generating a web-based game
+13. Major update: Possibility to build for a Web using WASM
+
 0.1.2 [Galactic Gateway]
 1. Split one big file two_d.rs into small sub-files (easy improve, debug, etc.)
 2. Make first game
