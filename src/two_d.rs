@@ -21,6 +21,9 @@ pub use tile::Tile;
 pub mod camera;
 pub use camera::Camera;
 
+pub mod camera3d;
+pub use camera3d::Camera3D;
+
 pub mod light;
 pub use light::PointLight;
 pub use light::SpotLight;
