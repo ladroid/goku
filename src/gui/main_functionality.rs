@@ -138,7 +138,7 @@ fn handle_emscripten_setup(project_dir: &str) -> Result<(), Box<dyn std::error::
 
     // Download and install the latest SDK tools
     std::process::Command::new(EMSDK)
-        .args(&["install", "latest"])
+        .args(&["install", "3.1.49"])
         .status()?;
 
     // Make the "latest" SDK "active"
