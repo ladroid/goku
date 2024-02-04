@@ -13,6 +13,7 @@
 11. Improve Particle System by adding new shape - circle
 12. Major update: Fix bug with system for AI model and add new feature emscripten for generating a web-based game
 13. Major update: Possibility to build for a Web using WASM
+14. Simple raycast
 
 0.1.2 [Galactic Gateway]
 1. Split one big file two_d.rs into small sub-files (easy improve, debug, etc.)
