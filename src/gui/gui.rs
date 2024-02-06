@@ -70,7 +70,7 @@ pub fn launcher() -> Result<(), String> {
 
     /* create a new window, be sure to call opengl method on the builder when using glow! */
     let window = video_subsystem
-        .window("goku engine", 1280, 720)
+        .window("Goku Engine", 1280, 720)
         .allow_highdpi()
         .opengl()
         .position_centered()
@@ -189,7 +189,7 @@ pub fn launcher() -> Result<(), String> {
         let ui = imgui.new_frame();
 
         if state.open_about {
-            ui.open_popup("goku game engine");
+            ui.open_popup("Goku Game Engine");
             state.open_about = false;
         }
 
@@ -387,7 +387,7 @@ pub fn launcher() -> Result<(), String> {
             });
         });
 
-        ui.modal_popup("goku game engine", || {
+        ui.modal_popup("Goku Game Engine", || {
             ui.text(format!("Version: {}", about_info.version));
             ui.text(format!("Date: {}", about_info.date));
             ui.text(format!("Rust: {}", about_info.rust_version));

@@ -306,7 +306,7 @@ Example of building sie scrolling prototype can be found [here](examples/simple_
 
 ### 5. Platformer
 
-Example of building platformer prototype can be found here -> https://github.com/ladroid
+Example of building platformer prototype can be found [here](examples/simple_platformer.rs)
 
 ### 6. Set simple states for enemy(chasing/following)
 

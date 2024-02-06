@@ -1,3 +1,4 @@
+extern crate embed_resource;
 use std::env;
 use std::path::PathBuf;
 
@@ -30,6 +31,7 @@ fn main() {
         // Windows specific configuration
         println!("cargo:rustc-link-search=native={}", out_dir.display());
         println!("cargo:rustc-link-lib=dylib=SDL2");
+        embed_resource::compile("config/app.rc", embed_resource::NONE);
     } else if target.contains("darwin") {
         // macOS specific configuration
         println!("cargo:rustc-link-search=native={}", out_dir.display());
