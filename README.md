@@ -254,10 +254,6 @@ For UNIX:
 
 * combine with wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
 
-* improve GAN model for pixel character generator
-
-* rewrite GAN model in Rust using [tch-rs](https://github.com/LaurentMazare/tch-rs)
-
 * improve physics
 
 * add/improve UI system (make possible to add image for buttons)

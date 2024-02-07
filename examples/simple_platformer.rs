@@ -4,12 +4,18 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
 use std::time::Duration;
+use rand::Rng;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
 const GRAVITY: i32 = 2;
 const JUMP_FORCE: i32 = -25;
+
+const PLATFORM_SPACING: i32 = 50; // Horizontal spacing between platforms
+const PLATFORM_MIN_WIDTH: u32 = 100;
+const PLATFORM_MAX_WIDTH: u32 = 300;
+const PLATFORM_HEIGHT: u32 = 20;
 
 struct Player {
     rect: two_d::Rect,
@@ -97,11 +103,11 @@ fn main() {
         nalgebra::Vector2::new(SCREEN_WIDTH, SCREEN_HEIGHT)
     );
     
-    let platforms = vec![
-        Platform::new(0, SCREEN_HEIGHT as i32 - 50, SCREEN_WIDTH, 50),
-        Platform::new(200, SCREEN_HEIGHT as i32 - 150, 150, 20),
-        Platform::new(400, SCREEN_HEIGHT as i32 - 250, 200, 20),
+    let mut platforms = vec![
+        Platform::new(0, SCREEN_HEIGHT as i32 - 50, SCREEN_WIDTH, 50), // Initial ground platform
     ];
+
+    let mut last_platform_x = 0; // Track the last platform's X position for generation
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -128,6 +134,24 @@ fn main() {
         }
 
         player.update(&platforms);
+
+        // Dynamically generate platforms as the player moves horizontally
+        let screen_right_edge = camera.position.x + SCREEN_WIDTH as i32;
+        while last_platform_x < screen_right_edge + PLATFORM_SPACING {
+            // Generate platform to the right
+            let platform_width = rand::thread_rng().gen_range(PLATFORM_MIN_WIDTH..=PLATFORM_MAX_WIDTH);
+            let platform_x = last_platform_x + rand::thread_rng().gen_range(10..PLATFORM_SPACING);
+            let platform_y = SCREEN_HEIGHT as i32 - PLATFORM_HEIGHT as i32 - rand::thread_rng().gen_range(0..SCREEN_HEIGHT/3) as i32;
+
+            platforms.push(Platform::new(platform_x, platform_y, platform_width, PLATFORM_HEIGHT));
+
+            last_platform_x = platform_x + platform_width as i32;
+        }
+
+        // Optional: Remove platforms that are no longer visible to the left
+        let screen_left_edge = camera.position.x;
+        platforms.retain(|p| p.rect.x() + p.rect.width() as i32 > screen_left_edge);
+
         // Update the camera to follow the player
         camera.update(nalgebra::Vector2::new(player.rect.x(), player.rect.y()));
 
