@@ -15,7 +15,7 @@ MyGame/
 mod two_d;
 
 pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = Window::new("My Game", 800, 600)?;
+    let mut window = Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
     let mut current_frame_time;

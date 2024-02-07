@@ -3,7 +3,7 @@ use sdl2::image::LoadTexture;
 mod two_d;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = two_d::Window::new("My Game", 800, 600)?;
+    let mut window = two_d::Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
     let mut current_frame_time;

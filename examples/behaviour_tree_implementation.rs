@@ -40,7 +40,7 @@ fn is_player_at_medium_distance() -> two_d::BehaviourTreeResult {
     two_d::BehaviourTreeResult::Success
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = two_d::Window::new("My Game", 800, 600)?;
+    let mut window = two_d::Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
     let mut current_frame_time;

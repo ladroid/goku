@@ -80,7 +80,7 @@ pub fn spawn_particles_swirling_leaves(particles: &mut Vec<two_d::Particle>, scr
 
 // Ensure you integrate the circle update logic and the conditional bubble spawning into your main loop or relevant update function
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = two_d::Window::new("My Game", 800, 600)?;
+    let mut window = two_d::Window::new("My Game", 800, 600, false)?;
 
     let mut event_pump = window.sdl_context.event_pump().unwrap();
 

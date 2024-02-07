@@ -93,7 +93,7 @@ impl Platform {
 }
 
 fn main() {
-    let mut window = two_d::Window::new("Rust SDL2 Demo: Platformer", SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
+    let mut window = two_d::Window::new("Rust SDL2 Demo: Platformer", SCREEN_WIDTH, SCREEN_HEIGHT, false).unwrap();
     let mut event_pump = window.sdl_context.event_pump().unwrap();
 
     let mut player = Player::new(SCREEN_WIDTH as i32 / 2, SCREEN_HEIGHT as i32 - 100);

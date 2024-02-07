@@ -12,16 +12,24 @@ pub struct Window {
 
 #[allow(dead_code)]
 impl Window {
-    pub fn new(title: &str, width: u32, height: u32) -> Result<Self, String> {
+    pub fn new(title: &str, width: u32, height: u32, fullscreen: bool) -> Result<Self, String> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
-        let window = video_subsystem
-            .window(title, width, height)
-            .opengl()
-            .position_centered()
-            .build()
-            .map_err(|e| e.to_string())?;
+        let window = if fullscreen {
+            video_subsystem.window(title, width, height)
+                .opengl()
+                .position_centered()
+                .fullscreen_desktop()
+                .build()
+                .map_err(|e| e.to_string())?
+        } else {
+            video_subsystem.window(title, width, height)
+                .opengl()
+                .position_centered()
+                .build()
+                .map_err(|e| e.to_string())?
+        };
 
         let canvas = window
             .into_canvas()

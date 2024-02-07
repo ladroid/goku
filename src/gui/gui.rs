@@ -850,6 +850,8 @@ fn generate_template(state: &mut State) {
     let window_title = &state.window_name;
     let window_width = state.window_width;
     let window_height = state.window_height;
+    // Assume enable_fullscreen is a boolean reflecting the fullscreen state
+    let enable_fullscreen = state.general_settings.enable_fullscreen;
     let mut content = format!(r#"
 mod two_d;
 use nalgebra::Vector2;
@@ -857,7 +859,7 @@ use std::path::Path;
 use crate::two_d::{{Window, TextureManagerAnim, GameObject, Camera, InputHandler, AmbientFilter, PointLight, SpotLight}};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {{
-    let mut window = Window::new("{}", {}, {})?;
+    let mut window = Window::new("{}", {}, {}, {})?;
 
     let mut last_frame_time = unsafe {{ sdl2::sys::SDL_GetTicks() }};
     let mut current_frame_time;
@@ -867,7 +869,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {{
     let mut camera = Camera::new(Vector2::new(0, 0), Vector2::new({}, {}));
 
     let texture_creator = window.canvas.texture_creator();
-    "#, window_title, window_width, window_height, window_width, window_height);
+    "#, window_title, window_width, window_height, enable_fullscreen, window_width, window_height);
 
     // Create a vector to store game object variable names
     let mut game_objects = Vec::new();

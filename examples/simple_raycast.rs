@@ -121,7 +121,7 @@ fn cast_ray(player_pos: (f64, f64), player_dir: (f64, f64), camera: &two_d::Came
 }
 
 fn main() -> Result<(), String> {
-    let mut window = two_d::Window::new("My Game", 800, 600)?;
+    let mut window = two_d::Window::new("My Game", 800, 600, false)?;
     let mut event_pump = window.sdl_context.event_pump()?;
 
     let mut player_pos:(f64, f64) = (22.0, 12.0); // Player start position

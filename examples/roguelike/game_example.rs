@@ -232,7 +232,7 @@ fn render_minimap(
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut window = two_d::Window::new("Whispering Depths", 800, 600)?;
+    let mut window = two_d::Window::new("Whispering Depths", 800, 600, false)?;
 
     let texture_creator = window.canvas.texture_creator();
 
