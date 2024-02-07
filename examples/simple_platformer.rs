@@ -3,7 +3,6 @@ mod two_d;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use std::time::Duration;
 
 const SCREEN_WIDTH: u32 = 800;
@@ -13,7 +12,7 @@ const GRAVITY: i32 = 2;
 const JUMP_FORCE: i32 = -25;
 
 struct Player {
-    rect: Rect,
+    rect: two_d::Rect,
     y_velocity: i32,
     on_ground: bool,
 }
@@ -21,7 +20,7 @@ struct Player {
 impl Player {
     fn new(x: i32, y: i32) -> Player {
         Player {
-            rect: Rect::new(x, y, 50, 50),
+            rect: two_d::Rect::new(x, y, 50, 50),
             y_velocity: 0,
             on_ground: false,
         }
@@ -76,28 +75,20 @@ impl Player {
 }
 
 struct Platform {
-    rect: Rect,
+    rect: two_d::Rect,
 }
 
 impl Platform {
     fn new(x: i32, y: i32, w: u32, h: u32) -> Platform {
         Platform {
-            rect: Rect::new(x, y, w, h),
+            rect: two_d::Rect::new(x, y, w, h),
         }
     }
 }
 
 fn main() {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-
-    let window = video_subsystem.window("Rust SDL2 Demo: Platformer", SCREEN_WIDTH, SCREEN_HEIGHT)
-        .position_centered()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().build().unwrap();
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut window = two_d::Window::new("Rust SDL2 Demo: Platformer", SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
+    let mut event_pump = window.sdl_context.event_pump().unwrap();
 
     let mut player = Player::new(SCREEN_WIDTH as i32 / 2, SCREEN_HEIGHT as i32 - 100);
 
@@ -140,20 +131,20 @@ fn main() {
         // Update the camera to follow the player
         camera.update(nalgebra::Vector2::new(player.rect.x(), player.rect.y()));
 
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
+        window.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        window.canvas.clear();
 
-        // Draw the player using camera transformation (the real player in white)
-        canvas.set_draw_color(Color::RGB(255, 255, 255));
-        canvas.fill_rect(camera.transform_rect(player.rect)).unwrap();
+        // During rendering of the player and platforms:
+        window.canvas.set_draw_color(Color::RGB(255, 255, 255)); // Set color for the player
+        window.canvas.fill_rect(camera.transform_rect(&player.rect)).unwrap(); // Render player
 
-        // Draw platforms using camera transformation
-        canvas.set_draw_color(Color::RGB(120, 120, 120));
+        // Set color for platforms and render them
+        window.canvas.set_draw_color(Color::RGB(120, 120, 120));
         for platform in &platforms {
-            canvas.fill_rect(camera.transform_rect(platform.rect)).unwrap();
+            window.canvas.fill_rect(camera.transform_rect(&platform.rect)).unwrap();
         }
 
-        canvas.present();
+        window.canvas.present();
         ::std::thread::sleep(Duration::from_millis(1000 / 60));
     }
 }

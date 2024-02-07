@@ -1,7 +1,8 @@
 extern crate sdl2;
 // extern  crate gl;
 
-use sdl2::rect::Rect;
+// use sdl2::rect::Rect;
+use crate::two_d::Rect;
 
 // use gl::types::*;
 use nalgebra::Vector2;
@@ -85,7 +86,17 @@ impl Camera {
         self.position.y = target_position.y - self.size.y as i32 / 2;
     }
 
-    pub fn transform_rect(&self, rect: Rect) -> Rect {
-        Rect::new(rect.x() - self.position.x, rect.y() - self.position.y, rect.width(), rect.height())
+    pub fn transform_rect(&self, rect: &Rect) -> Option<sdl2::rect::Rect> {
+        // Calculate the relative position of the rect to the camera
+        let transformed_x = rect.x() - self.position.x;
+        let transformed_y = rect.y() - self.position.y;
+
+        // Create a new SDL Rect with the transformed position
+        Some(sdl2::rect::Rect::new(
+            transformed_x,
+            transformed_y,
+            rect.width(),
+            rect.height(),
+        ))
     }
 }

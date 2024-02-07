@@ -79,3 +79,6 @@ pub mod event;
 pub use event::KeyEvent;
 pub use event::GEvent;
 pub use event::from_sdl_event;
+
+pub mod rect;
+pub use rect::Rect;
