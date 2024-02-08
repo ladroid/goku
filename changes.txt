@@ -17,6 +17,7 @@
 15. Add an icon and make a simple platformer
 16. Modify two_d API add a Rect class as well as modify Camera, improved simple platformer
 17. Modify Window by adding fullscreen mode, possibility to add through the settings and examples were modified
+18. Modify Rect class and add example with WASM as well as improved simple platformer
 
 0.1.2 [Galactic Gateway]
 1. Split one big file two_d.rs into small sub-files (easy improve, debug, etc.)
