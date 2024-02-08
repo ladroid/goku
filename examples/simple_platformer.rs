@@ -1,7 +1,6 @@
 extern crate sdl2;
 mod two_d;
-use sdl2::event::Event;
-use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use std::time::Duration;
 use rand::Rng;
@@ -94,7 +93,7 @@ impl Platform {
 
 fn main() {
     let mut window = two_d::Window::new("Rust SDL2 Demo: Platformer", SCREEN_WIDTH, SCREEN_HEIGHT, false).unwrap();
-    let mut event_pump = window.sdl_context.event_pump().unwrap();
+    let mut input_handler = two_d::InputHandler::new(&window.sdl_context).unwrap();
 
     let mut player = Player::new(SCREEN_WIDTH as i32 / 2, SCREEN_HEIGHT as i32 - 100);
 
@@ -110,26 +109,19 @@ fn main() {
     let mut last_platform_x = 0; // Track the last platform's X position for generation
 
     'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => {}
-            }
+        input_handler.poll_events(); // Poll events using InputHandler
+
+        if input_handler.is_key_pressed(Keycode::Escape) {
+            break 'running;
         }
 
-        let keyboard_state = event_pump.keyboard_state();
-
-        if keyboard_state.is_scancode_pressed(Scancode::Left) {
+        if input_handler.is_key_pressed(Keycode::Left) {
             player.move_left();
         }
-        if keyboard_state.is_scancode_pressed(Scancode::Right) {
+        if input_handler.is_key_pressed(Keycode::Right) {
             player.move_right();
         }
-        if keyboard_state.is_scancode_pressed(Scancode::Space) {
+        if input_handler.is_key_pressed(Keycode::Space) {
             player.jump();
         }
 

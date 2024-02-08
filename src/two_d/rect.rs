@@ -1,5 +1,6 @@
 use sdl2::rect::Rect as SdlRect;
 
+#[derive(PartialEq, Copy, Clone)]
 pub struct Rect {
     sdl_rect: SdlRect,
 }
