@@ -1,4 +1,4 @@
-0.1.3 []
+0.1.3 [Star Sprint]
 1. GUI: Move input handler into Preferences and remove unused parts of preferences
 2. GUI: Add Ambinet Filter Component
 3. GUI: Add Audio Player
