@@ -1,7 +1,6 @@
 extern crate sdl2;
 mod two_d;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
 use std::time::Duration;
 use rand::Rng;
 
@@ -147,15 +146,15 @@ fn main() {
         // Update the camera to follow the player
         camera.update(nalgebra::Vector2::new(player.rect.x(), player.rect.y()));
 
-        window.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        window.canvas.set_draw_color(two_d::Color::new(0, 0, 0).sdl_color());
         window.canvas.clear();
 
         // During rendering of the player and platforms:
-        window.canvas.set_draw_color(Color::RGB(255, 255, 255)); // Set color for the player
+        window.canvas.set_draw_color(two_d::Color::new(255, 255, 255).sdl_color()); // Set color for the player
         window.canvas.fill_rect(camera.transform_rect(&player.rect)).unwrap(); // Render player
 
         // Set color for platforms and render them
-        window.canvas.set_draw_color(Color::RGB(120, 120, 120));
+        window.canvas.set_draw_color(two_d::Color::new(120, 120, 120).sdl_color());
         for platform in &platforms {
             window.canvas.fill_rect(camera.transform_rect(&platform.rect)).unwrap();
         }
