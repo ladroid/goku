@@ -35,6 +35,9 @@ pub use physics::RigidBody;
 pub mod particle_system;
 pub use particle_system::Particle;
 pub use particle_system::ParticleShape;
+pub use particle_system::spawn_particles_fires;
+pub use particle_system::spawn_particles_rain;
+pub use particle_system::spawn_particles_sparks;
 
 pub mod shapes;
 pub use shapes::Shape2D;

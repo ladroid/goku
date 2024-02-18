@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if input_handler.is_mouse_button_pressed() {
             let (x, y) = input_handler.get_mouse_position();
             for _ in 0..5 {
-                two_d::spawn_particles_fires(&mut particles, x, y, 10, two_d::Particle::ParticleShape::Rect);
+                two_d::spawn_particles_fires(&mut particles, x, y, 10, two_d::ParticleShape::Rect);
             }
         }   
 
@@ -117,23 +117,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for x in 0..tile_map.tile_map[0].len() {
                 let tile_index = tile_map.tile_map[y][x] as usize;
                 let texture_manager = &tile_map.textures[tile_index];
-                let rect = sdl2::rect::Rect::new((x * 82) as i32, (y * 82) as i32, 82, 82);
-                let transformed_rect = camera.transform_rect(rect);
-                texture_manager.render_texture(&mut window.canvas, transformed_rect)?;
+                let rect = two_d::Rect::new((x * 82) as i32, (y * 82) as i32, 82, 82);
+                let transformed_rect = camera.transform_rect(&rect);
+                texture_manager.render_texture(&mut window.canvas, transformed_rect.unwrap())?;
             }
         }
 
         // Render the player
         if let Some(current_animation_tag) = &player.texture_manager_anim.current_animation {
             if let Some(animated_texture) = player.texture_manager_anim.animations.get(current_animation_tag) {
-                let player_rect = sdl2::rect::Rect::new(
+                let player_rect = two_d::Rect::new(
                     player.position.x, 
                     player.position.y, 
                     animated_texture.sprite_sheet.frame_width * 2, 
                     animated_texture.sprite_sheet.frame_height * 2
                 );
-                let transformed_player_rect = camera.transform_rect(player_rect);
-                player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
+                let transformed_player_rect = camera.transform_rect(&player_rect);
+                player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect.unwrap(), flip_horizontal as u32)?;
             }
         }
 
