@@ -14,7 +14,7 @@ MyGame/
 
 mod two_d;
 
-pub fn test_parallax() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -28,38 +28,38 @@ pub fn test_parallax() -> Result<(), Box<dyn std::error::Error>> {
     let texture_creator = canvas.texture_creator();
     
     // initialize your texture managers
-    let mut texture_manager_1 = TextureManager::new(&texture_creator);
-    texture_manager_1.load_texture(Path::new("Tall Forest Files/Layers/back.png"))?;
-    let mut texture_manager_2 = TextureManager::new(&texture_creator);
-    texture_manager_2.load_texture(Path::new("Tall Forest Files/Layers/far.png"))?;
+    let mut texture_manager_1 = two_d::TextureManager::new(&texture_creator);
+    texture_manager_1.load_texture(std::path::Path::new("Tall Forest Files/Layers/back.png"))?;
+    let mut texture_manager_2 = two_d::TextureManager::new(&texture_creator);
+    texture_manager_2.load_texture(std::path::Path::new("Tall Forest Files/Layers/far.png"))?;
     
     // initialize your parallax layers
-    let parallax_layer_1 = ParallaxLayer::new(texture_manager_1, 200.0);
-    let parallax_layer_2 = ParallaxLayer::new(texture_manager_2, 200.0);
+    let parallax_layer_1 = two_d::ParallaxLayer::new(texture_manager_1, 200.0);
+    let parallax_layer_2 = two_d::ParallaxLayer::new(texture_manager_2, 200.0);
     
     // initialize your parallax background
-    let mut parallax_background = ParallaxBackground::new(vec![parallax_layer_1, parallax_layer_2]);
+    let mut parallax_background = two_d::ParallaxBackground::new(vec![parallax_layer_1, parallax_layer_2]);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut i = 0;
 
-    let mut camera = Camera { 
-        position: Vector2::new(0, 0), 
-        size: Vector2::new(800, 600)
+    let camera = two_d::Camera { 
+        position: nalgebra::Vector2::new(0, 0), 
+        size: nalgebra::Vector2::new(800, 600)
     };
 
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                sdl2::event::Event::Quit {..} |
+                sdl2::event::Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Escape), .. } => {
                     break 'running
                 },
                 _ => {}
             }
         }
         i = (i + 1) % 255;
-        canvas.set_draw_color(sdl2::pixels::Color::RGB(i, 64, 255 - i));
+        canvas.set_draw_color(two_d::Color::new(i, 64, 255 - i).sdl_color());
         canvas.clear();
 
         // update the parallax background
