@@ -1,4 +1,5 @@
 extern crate sdl2;
+use crate::two_d;
 // extern  crate gl;
 
 
@@ -7,12 +8,12 @@ pub struct PointLight {
     pub position: nalgebra::Vector2<f32>,
     pub radius: f32,
     pub intensity: f32,
-    pub color: sdl2::pixels::Color,
+    pub color: two_d::Color,
 }
 
 #[allow(dead_code)]
 impl PointLight {
-    pub fn new(position: nalgebra::Vector2<f32>, radius: f32, intensity: f32, color: sdl2::pixels::Color) -> Self {
+    pub fn new(position: nalgebra::Vector2<f32>, radius: f32, intensity: f32, color: two_d::Color) -> Self {
         PointLight {
             position,
             radius,
@@ -27,7 +28,7 @@ impl PointLight {
         
         // Set the alpha and color modulation of the light texture
         light_spot_texture.set_alpha_mod(alpha_value);
-        light_spot_texture.set_color_mod(self.color.r, self.color.g, self.color.b);
+        light_spot_texture.set_color_mod(self.color.r(), self.color.g(), self.color.b());
         
         let dst_rect = sdl2::rect::Rect::new(
             self.position.x as i32 - self.radius as i32,
