@@ -47,12 +47,12 @@ pub struct SpotLight {
     pub cutoff_angle: f32,  // Angle of the cone (in degrees).
     pub distance: f32,      // Maximum distance the light can reach.
     pub intensity: f32,
-    pub color: sdl2::pixels::Color,
+    pub color: two_d::Color,
 }
 
 #[allow(dead_code)]
 impl SpotLight {
-    pub fn new(position: nalgebra::Vector2<f32>, direction: nalgebra::Vector2<f32>, cutoff_angle: f32, distance: f32, intensity: f32, color: sdl2::pixels::Color) -> Self {
+    pub fn new(position: nalgebra::Vector2<f32>, direction: nalgebra::Vector2<f32>, cutoff_angle: f32, distance: f32, intensity: f32, color: two_d::Color) -> Self {
         SpotLight {
             position,
             direction,
@@ -69,7 +69,7 @@ impl SpotLight {
         
         // Set the alpha and color modulation of the light texture
         spotlight_texture.set_alpha_mod(alpha_value);
-        spotlight_texture.set_color_mod(self.color.r, self.color.g, self.color.b);
+        spotlight_texture.set_color_mod(self.color.r(), self.color.g(), self.color.b());
         
         let dst_rect = sdl2::rect::Rect::new(
             self.position.x as i32 - (self.distance / 2.0) as i32,
