@@ -1,5 +1,4 @@
 mod two_d;
-use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Instant;
@@ -108,15 +107,15 @@ fn cast_ray(player_pos: (f64, f64), player_dir: (f64, f64), camera: &two_d::Came
 
     // Choose wall color
     let wall_color = match WORLD_MAP[map_x as usize][map_y as usize] {
-        1 => Color::RGB(255, 0, 0),
-        2 => Color::RGB(0, 255, 0),
-        3 => Color::RGB(0, 0, 255),
-        4 => Color::RGB(255, 255, 0),
-        _ => Color::RGB(255, 255, 255),
+        1 => two_d::Color::new(255, 0, 0),
+        2 => two_d::Color::new(0, 255, 0),
+        3 => two_d::Color::new(0, 0, 255),
+        4 => two_d::Color::new(255, 255, 0),
+        _ => two_d::Color::new(255, 255, 255),
     };
 
     // Draw the pixels of the stripe as a vertical line
-    canvas.set_draw_color(wall_color);
+    canvas.set_draw_color(wall_color.sdl_color());
     canvas.draw_line((x as i32, draw_start), (x as i32, draw_end)).unwrap();
 }
 
@@ -185,7 +184,7 @@ fn main() -> Result<(), String> {
         }
 
         // Clear the screen to black (or your floor/ceiling colors)
-        window.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        window.canvas.set_draw_color(two_d::Color::new(0, 0, 0).sdl_color());
         window.canvas.clear();
 
         // Cast rays and draw scene
