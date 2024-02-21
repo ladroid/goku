@@ -1,4 +1,5 @@
 extern crate sdl2;
+use crate::two_d;
 // extern  crate gl;
 
 use sdl2::rect::Rect;
@@ -21,14 +22,14 @@ pub struct Particle {
     pub y_vel: f32,
     pub life: f32,
     pub size: u32,
-    pub color: sdl2::pixels::Color,
+    pub color: two_d::Color,
     pub alpha: u8,
     pub shape: ParticleShape,
 }
 
 #[allow(dead_code)]
 impl Particle {
-    pub fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: sdl2::pixels::Color, shape: ParticleShape) -> Self {
+    pub fn new(x: f32, y: f32, x_vel: f32, y_vel: f32, life: f32, color: two_d::Color, shape: ParticleShape) -> Self {
         Particle {
             x,
             y,
@@ -56,7 +57,7 @@ impl Particle {
     }
 
     pub fn render<T: sdl2::render::RenderTarget>(&self, canvas: &mut Canvas<T>) {
-        canvas.set_draw_color(sdl2::pixels::Color::RGBA(self.color.r, self.color.g, self.color.b, self.alpha));
+        canvas.set_draw_color(sdl2::pixels::Color::RGBA(self.color.r(), self.color.g(), self.color.b(), self.alpha));
         match self.shape {
             ParticleShape::Rect => {
                 canvas.fill_rect(Rect::new(self.x as i32, self.y as i32, self.size, self.size)).unwrap();
@@ -91,7 +92,7 @@ pub fn spawn_particles_sparks(particles: &mut Vec<Particle>, x: i32, y: i32, cou
         let x_vel = angle.cos() * speed;
         let y_vel = angle.sin() * speed;
         let life = rng.gen_range(0.5..2.5);
-        let color = sdl2::pixels::Color::RGBA(123, 56, 89, 255);
+        let color = two_d::Color::new_rgba(123, 56, 89, 255);
 
         particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color, shape));
     }
@@ -107,9 +108,9 @@ pub fn spawn_particles_fires(particles: &mut Vec<Particle>, x: i32, y: i32, coun
         let y_vel = angle.sin() * speed;
         let life = rng.gen_range(0.5..2.5);
         let color = match rng.gen_range(0..3) {
-            0 => sdl2::pixels::Color::RGB(254, 95, 85),
-            1 => sdl2::pixels::Color::RGB(254, 207, 92),
-            _ => sdl2::pixels::Color::RGB(254, 253, 153),
+            0 => two_d::Color::new(254, 95, 85),
+            1 => two_d::Color::new(254, 207, 92),
+            _ => two_d::Color::new(254, 253, 153),
         };
 
         particles.push(Particle::new(x as f32, y as f32, x_vel, y_vel, life, color, shape));
@@ -126,7 +127,7 @@ pub fn spawn_particles_rain(particles: &mut Vec<Particle>, screen_width: u32, co
         let x_vel = rng.gen_range(-5.0..5.0); // slight horizontal movement
         let y_vel = rng.gen_range(50.0..100.0); // vertical falling movement
         let life = rng.gen_range(2.0..5.0); // life of raindrop
-        let color = sdl2::pixels::Color::RGBA(0, 0, 255, 255); // blue color for rain
+        let color = two_d::Color::new_rgba(0, 0, 255, 255); // blue color for rain
         
         particles.push(Particle::new(x, y, x_vel, y_vel, life, color, shape));
     }

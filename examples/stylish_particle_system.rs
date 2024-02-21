@@ -3,7 +3,6 @@ extern crate sdl2;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
 use std::time::{Duration, Instant};
 
 #[allow(dead_code)]
@@ -19,7 +18,7 @@ pub fn spawn_particles_glowing_orbs(particles: &mut Vec<two_d::Particle>, x: i32
         // Randomize life, size, and color
         let life = rng.gen_range(3.0..6.0);
         let size = rng.gen_range(4..10); // larger size for visible glow
-        let color = sdl2::pixels::Color::RGBA(
+        let color = two_d::Color::new_rgba(
             rng.gen_range(100..256) as u8,
             rng.gen_range(100..256) as u8,
             rng.gen_range(100..256) as u8,
@@ -44,9 +43,9 @@ pub fn spawn_particles_stardust(particles: &mut Vec<two_d::Particle>, screen_wid
         let life = rng.gen_range(3.0..6.0);
         let size = rng.gen_range(2..5);
         let color = if rng.gen_bool(0.5) {
-            sdl2::pixels::Color::RGB(255, 255, 255) // White color
+            two_d::Color::new(255, 255, 255) // White color
         } else {
-            sdl2::pixels::Color::RGB(255, 255, 224) // Light yellow color
+            two_d::Color::new(255, 255, 224) // Light yellow color
         };
 
         particles.push(two_d::Particle::new(x, y, x_vel, y_vel, life, color, shape));
@@ -67,10 +66,10 @@ pub fn spawn_particles_swirling_leaves(particles: &mut Vec<two_d::Particle>, scr
         let life = rng.gen_range(5.0..10.0);
         let size = rng.gen_range(8..15); // larger size for leaf shape
         let color = match rng.gen_range(0..4) {
-            0 => sdl2::pixels::Color::RGB(34, 139, 34), // Forest Green
-            1 => sdl2::pixels::Color::RGB(255, 165, 0), // Orange
-            2 => sdl2::pixels::Color::RGB(255, 215, 0), // Gold
-            _ => sdl2::pixels::Color::RGB(160, 82, 45),  // Sienna
+            0 => two_d::Color::new(34, 139, 34), // Forest Green
+            1 => two_d::Color::new(255, 165, 0), // Orange
+            2 => two_d::Color::new(255, 215, 0), // Gold
+            _ => two_d::Color::new(160, 82, 45),  // Sienna
         };
 
         particles.push(two_d::Particle::new(x, y, x_vel, y_vel, life, color, shape));
@@ -119,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             p.life > 0.0
         });
 
-        window.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        window.canvas.set_draw_color(two_d::Color::new(0, 0, 0).sdl_color());
         window.canvas.clear();
 
         for particle in &particles {
