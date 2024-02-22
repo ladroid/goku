@@ -127,12 +127,12 @@ impl State {
 
     pub fn save_settings(&self) -> Result<(), Box<dyn std::error::Error>> {
         let settings_json = serde_json::to_string(&self.general_settings)?;
-        std::fs::write("settings.json", settings_json)?;
+        std::fs::write(std::path::Path::new("config").join("settings.json"), settings_json)?;
         Ok(())
     }
 
     pub fn load_settings(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let settings_json = std::fs::read_to_string("settings.json")?;
+        let settings_json = std::fs::read_to_string(std::path::Path::new("config").join("settings.json"))?;
         self.general_settings = serde_json::from_str(&settings_json)?;
         Ok(())
     }
