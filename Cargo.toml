@@ -26,6 +26,12 @@ chrono = "0.4.31"
 copypasta = "0.10.0"
 pyo3 = { version = "0.20.2", features = ["extension-module", "auto-initialize"] }
 
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["psapi"] }
+
+[target.'cfg(target_os = "unix")'.dependencies]
+libc = "0.2"
+
 [dependencies.sdl2]
 version = "0.36"
 default-features = false

@@ -531,6 +531,7 @@ dependencies = [
  "imgui",
  "imgui-opengl-renderer",
  "imgui-sdl2",
+ "libc",
  "nalgebra",
  "pyo3",
  "rand",
@@ -541,6 +542,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "webbrowser",
+ "winapi",
 ]
 
 [[package]]
