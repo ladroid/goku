@@ -35,6 +35,69 @@ fn get_memory_usage() -> u32 {
     0 // In case of failure or inability to read
 }
 
+#[cfg(target_os = "windows")]
+use winapi::um::processthreadsapi::GetSystemTimes;
+use winapi::shared::minwindef::FILETIME;
+use std::mem::MaybeUninit;
+
+static mut PREVIOUS_IDLE_TIME: u64 = 0;
+static mut PREVIOUS_SYSTEM_TIME: u64 = 0;
+
+#[cfg(target_os = "windows")]
+fn filetime_to_u64(ft: FILETIME) -> u64 {
+    ((ft.dwHighDateTime as u64) << 32) | (ft.dwLowDateTime as u64)
+}
+
+#[cfg(target_os = "windows")]
+fn get_cpu_usage() -> Option<f32> {
+    unsafe {
+        let mut idle_time = MaybeUninit::<FILETIME>::uninit();
+        let mut kernel_time = MaybeUninit::<FILETIME>::uninit();
+        let mut user_time = MaybeUninit::<FILETIME>::uninit();
+
+        if GetSystemTimes(idle_time.as_mut_ptr(), kernel_time.as_mut_ptr(), user_time.as_mut_ptr()) == 0 {
+            return None; // Call failed
+        }
+
+        let idle_time = filetime_to_u64(idle_time.assume_init());
+        let system_time = filetime_to_u64(kernel_time.assume_init()) + filetime_to_u64(user_time.assume_init());
+
+        let idle_delta = idle_time - PREVIOUS_IDLE_TIME;
+        let system_delta = system_time - PREVIOUS_SYSTEM_TIME;
+
+        PREVIOUS_IDLE_TIME = idle_time;
+        PREVIOUS_SYSTEM_TIME = system_time;
+
+        if system_delta == 0 {
+            return None;
+        }
+
+        Some((1.0 - (idle_delta as f32 / system_delta as f32)) * 100.0)
+    }
+}
+
+#[cfg(target_os = "unix")]
+fn get_cpu_usage() -> f32 {
+    use std::fs;
+
+    if let Ok(contents) = fs::read_to_string("/proc/stat") {
+        let lines: Vec<&str> = contents.lines().collect();
+        if let Some(line) = lines.first() {
+            let values: Vec<&str> = line.split_whitespace().collect();
+            if values.len() > 4 {
+                let user_time: f32 = values[1].parse().unwrap_or(0.0);
+                let nice_time: f32 = values[2].parse().unwrap_or(0.0);
+                let system_time: f32 = values[3].parse().unwrap_or(0.0);
+                let idle_time: f32 = values[4].parse().unwrap_or(0.0);
+                
+                let total_time = user_time + nice_time + system_time + idle_time;
+                return 100.0 * (total_time - idle_time) / total_time;
+            }
+        }
+    }
+
+    0.0
+}
 
 // profiler
 pub struct Profiler {
@@ -71,8 +134,11 @@ impl Profiler {
         }
 
         if current_frame_time - self.last_cpu_print_time >= 10000 {  // Every 10 seconds
-            // TODO: Note: The CPU fetching here is a placeholder. 
-            println!("CPU Usage: {}%", "PLACEHOLDER");
+            if let Some(cpu_usage) = get_cpu_usage() {
+                println!("CPU Usage: {:.2}%", cpu_usage);
+            } else {
+                println!("Failed to get CPU Usage");
+            }
             self.last_cpu_print_time = current_frame_time;
         }
     }

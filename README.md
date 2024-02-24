@@ -264,7 +264,7 @@ For UNIX:
 
 * ~~tabs~~
 
-* profiler improve
+* ~~profiler improve~~
 
 * ~~add/improve particle system~~
 
