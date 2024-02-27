@@ -1,8 +1,7 @@
 use imgui::Context;
-use sdl2::event::Event;
-use sdl2::image::LoadTexture;
 use rfd::FileDialog;
 use copypasta::ClipboardProvider;
+use sdl2::surface::Surface;
 use crate::gui::component::Component;
 use crate::gui::texture_component::TextureComponent;
 use crate::gui::ambient_filter_component::AmbientFilterComponent;
@@ -20,17 +19,24 @@ use crate::gui::main_functionality::save_project_to_path;
 use crate::gui::main_functionality::execute_command;
 use crate::gui::main_functionality::handle_two_d_module;
 use crate::deepl::deepl::call_python_add_function;
+use sdl2::image::{LoadSurface, InitFlag};
+use std::ffi::CString;
+use std::ptr;
+use std::str;
 
-fn sdl_surface_to_gl_texture(surface: sdl2::surface::Surface) -> Result<u32, String> {
+// Add a boolean flag to track whether the image is being dragged
+static mut IS_DRAGGING: bool = false;
+
+fn sdl_surface_to_gl_texture(surface: &sdl2::surface::Surface) -> Result<u32, String> {
     let mut texture_id: u32 = 0;
-
     unsafe {
         gl::GenTextures(1, &mut texture_id);
         gl::BindTexture(gl::TEXTURE_2D, texture_id);
 
-        // Set texture parameters
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 
         let format = match surface.pixel_format_enum() {
             sdl2::pixels::PixelFormatEnum::RGB24 => gl::RGB,
@@ -44,7 +50,7 @@ fn sdl_surface_to_gl_texture(surface: sdl2::surface::Surface) -> Result<u32, Str
             format as i32,
             surface.width() as i32,
             surface.height() as i32,
-             0,
+            0,
             format,
             gl::UNSIGNED_BYTE,
             surface.without_lock().unwrap().as_ptr() as *const _,
@@ -54,7 +60,78 @@ fn sdl_surface_to_gl_texture(surface: sdl2::surface::Surface) -> Result<u32, Str
     Ok(texture_id)
 }
 
+fn compile_shader(shader_type: gl::types::GLenum, source: &str) -> Result<u32, String> {
+    let shader = unsafe { gl::CreateShader(shader_type) };
+    let c_str = CString::new(source.as_bytes()).unwrap();
+    unsafe {
+        gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
+        gl::CompileShader(shader);
+
+        let mut success = gl::FALSE as gl::types::GLint;
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+        if success != gl::TRUE as gl::types::GLint {
+            let mut len = 0;
+            gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+            let mut buf = Vec::with_capacity(len as usize);
+            buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
+            gl::GetShaderInfoLog(shader, len, ptr::null_mut(), buf.as_mut_ptr() as *mut gl::types::GLchar);
+            return Err(str::from_utf8(&buf).unwrap().to_owned());
+        }
+    }
+    Ok(shader)
+}
+
+fn link_program(vert_shader: u32, frag_shader: u32) -> Result<u32, String> {
+    let program = unsafe { gl::CreateProgram() };
+    unsafe {
+        gl::AttachShader(program, vert_shader);
+        gl::AttachShader(program, frag_shader);
+        gl::LinkProgram(program);
+
+        let mut success = gl::FALSE as gl::types::GLint;
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
+        if success != gl::TRUE as gl::types::GLint {
+            let mut len: gl::types::GLint = 0;
+            gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
+            let mut buf = Vec::with_capacity(len as usize);
+            buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
+            gl::GetProgramInfoLog(program, len, ptr::null_mut(), buf.as_mut_ptr() as *mut gl::types::GLchar);
+            return Err(str::from_utf8(&buf).unwrap().to_owned());
+        }
+    }
+    Ok(program)
+}
+
+const VERTEX_SHADER_SOURCE: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    layout (location = 1) in vec2 aTexCoord;
+
+    uniform vec2 uImagePos; // Uniform for image position
+
+    out vec2 TexCoord;
+
+    void main() {
+        gl_Position = vec4(aPos.x + uImagePos.x, aPos.y + uImagePos.y, aPos.z, 1.0);
+        TexCoord = aTexCoord;
+    }
+"#;
+
+const FRAGMENT_SHADER_SOURCE: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+
+    in vec2 TexCoord;
+
+    uniform sampler2D texture1;
+
+    void main() {
+        FragColor = texture(texture1, TexCoord);
+    }
+"#;
+
 pub fn launcher() -> Result<(), String> {
+    sdl2::image::init(InitFlag::PNG)?;
     /* initialize SDL and its video subsystem */
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
@@ -81,7 +158,7 @@ pub fn launcher() -> Result<(), String> {
     let _gl_context = window.gl_create_context().expect("Couldn't create GL context");
     gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as _);
 
-    let mut canvas = window.into_canvas().accelerated().present_vsync().build().unwrap();
+    let canvas = window.into_canvas().accelerated().present_vsync().build().unwrap();
 
     /* enable vsync to cap framerate */
     canvas.window().subsystem().gl_set_swap_interval(1).unwrap();
@@ -134,7 +211,6 @@ pub fn launcher() -> Result<(), String> {
     let renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| video_subsystem.gl_get_proc_address(s) as _);
 
     /* load texture from PNG file */
-    let texture_creator = canvas.texture_creator();
     let mut textures = Vec::new();
 
     /* Initialize texture position variables */
@@ -154,25 +230,75 @@ pub fn launcher() -> Result<(), String> {
         os: std::env::consts::OS.to_string(),
     };
 
+    // Set up shader program
+    let vert_shader = compile_shader(gl::VERTEX_SHADER, VERTEX_SHADER_SOURCE)?;
+    let frag_shader = compile_shader(gl::FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE)?;
+    let shader_program = link_program(vert_shader, frag_shader)?;
+
+    // Set up vertex data (and buffer(s)) and configure vertex attributes
+    let (mut vao, mut vbo) = (0, 0);
+    unsafe {
+        let vertices: [f32; 20] = [
+            // positions    // texture coords
+            0.0,  0.0, 0.0,  1.0, 0.0,   // top right
+            0.0, -0.5, 0.0,  1.0, 1.0,   // bottom right
+            -0.5, -0.5, 0.0, 0.0, 1.0,   // bottom left
+            -0.5,  0.0, 0.0, 0.0, 0.0    // top left 
+        ];
+        let indices: [u32; 6] = [
+            0, 1, 3, // first triangle
+            1, 2, 3  // second triangle
+        ];
+        let mut ebo = 0;
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut vbo);
+        gl::GenBuffers(1, &mut ebo);
+        
+        gl::BindVertexArray(vao);
+        
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(gl::ARRAY_BUFFER,
+                    (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+                    vertices.as_ptr() as *const gl::types::GLvoid,
+                    gl::STATIC_DRAW);
+        
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                    (indices.len() * std::mem::size_of::<u32>()) as gl::types::GLsizeiptr,
+                    indices.as_ptr() as *const gl::types::GLvoid,
+                    gl::STATIC_DRAW);
+
+        let stride = 5 * std::mem::size_of::<f32>() as gl::types::GLint;
+        // position attribute
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
+        gl::EnableVertexAttribArray(0);
+        // texture coord attribute
+        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid);
+        gl::EnableVertexAttribArray(1);
+    }
+
     loop {
         for event in event_pump.poll_iter() {
             /* pass all events to imgui platform */
             platform.handle_event(&mut imgui, &event);
 
             match event {
-                Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Up), .. } => {
-                    texture_pos[0].1 -= 5.0; // Move up
-                }
-                Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Down), .. } => {
-                    texture_pos[0].1 += 5.0; // Move down
-                }
-                Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Left), .. } => {
-                    texture_pos[0].0 -= 5.0; // Move left
-                }
-                Event::KeyDown { keycode: Some(sdl2::keyboard::Keycode::Right), .. } => {
-                    texture_pos[0].0 += 5.0; // Move right
-                }
-                Event::Quit { .. } => {
+                sdl2::event::Event::MouseButtonDown { x, y, mouse_btn: sdl2::mouse::MouseButton::Left, .. } => {
+                    // Update IMAGE_POS on mouse down to set the initial position
+                    unsafe {
+                        let x_float = x as f32;
+                        let y_float = y as f32;
+                        if x_float >= texture_pos[0].0 && x_float <= texture_pos[0].0 + state.texture_width && y_float >= texture_pos[1].1 && y_float <= texture_pos[0].1 + state.texture_height {
+                            IS_DRAGGING = true;
+                        }
+                    }
+                },
+                sdl2::event::Event::MouseMotion { x, y, mousestate, .. } if mousestate.left() => {
+                    // Update IMAGE_POS on mouse drag to move the image
+                    texture_pos[0].0 = x as f32;
+                    texture_pos[0].1 = y as f32;
+                },
+                sdl2::event::Event::Quit { .. } => {
                     state.canvas_present = true;
                     return Ok(());
                 }
@@ -308,7 +434,7 @@ pub fn launcher() -> Result<(), String> {
                             // Load the image into an SDL2 surface
                             match sdl2::image::LoadSurface::from_file(&image_path) {
                                 Ok(surface) => {
-                                    match sdl_surface_to_gl_texture(surface) {
+                                    match sdl_surface_to_gl_texture(&surface) {
                                         Ok(tex_id) => {
                                             // Store this `tex_id` somewhere accessible for rendering
                                             state.dynamic_texture_id = Some(tex_id);
@@ -471,7 +597,10 @@ pub fn launcher() -> Result<(), String> {
 
                         let p = texture.path.clone();
                         if ui.button(&format!("Load Texture {}", idx + 1)) {
-                            let tex = texture_creator.load_texture(&p).unwrap();
+                            let tex = Surface::from_file(&p).unwrap();
+                            state.texture_width = tex.width() as f32;
+                            state.texture_height = tex.height() as f32;
+                            state.surf_texture_id = sdl_surface_to_gl_texture(&tex).unwrap();
                             textures.push(tex);
                             texture_pos.push((301.676, 22.346)); // Add a new position for the new texture
                             state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
@@ -803,29 +932,44 @@ pub fn launcher() -> Result<(), String> {
                 }
             }
         }        
-                
-        /* render texture at the position specified by the slider */
-        canvas.clear();
-        let texture_width = (50.0 * texture_scale) as u32;
-        let texture_height = (50.0 * texture_scale) as u32;
-        for (idx, texture) in textures.iter().enumerate() { 
-            let rect = sdl2::rect::Rect::new(texture_pos[idx].0 as i32, texture_pos[idx].1 as i32, texture_width, texture_height);
-            canvas.copy(texture, None, rect).unwrap();
-        }
 
         /* render */
         unsafe {
             gl::ClearColor(0.2, 0.2, 0.2, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
+
+        if state.canvas_present {
+            // Inside the main loop, before rendering
+            let (win_width, win_height) = canvas.window().size();
+
+            unsafe {
+                // Clear the screen to grey
+                gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+                gl::Clear(gl::COLOR_BUFFER_BIT);
+
+                // Use the shader program
+                gl::UseProgram(shader_program);
+
+                // Update the uniform for image position with normalized coordinates
+                let uniform_name = CString::new("uImagePos").unwrap();
+                let pos_uniform = gl::GetUniformLocation(shader_program, uniform_name.as_ptr());
+                let normalized_x = (texture_pos[0].0 / win_width as f32) * 2.0 - 1.0; // Normalize to [-1, 1]
+                let normalized_y = 1.0 - (texture_pos[0].1 / win_height as f32) * 2.0; // Normalize to [-1, 1] and flip Y
+                gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
+
+                // Bind texture
+                gl::BindTexture(gl::TEXTURE_2D, state.surf_texture_id);
+
+                // Draw the quad
+                gl::BindVertexArray(vao);
+                gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            }
+        }
+
         platform.prepare_render(&ui, &canvas.window());
         renderer.render(&mut imgui);
         canvas.window().gl_swap_window();
-
-        if state.canvas_present {
-            canvas.present();
-        }
-        canvas.clear();
     }
 }
 

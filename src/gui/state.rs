@@ -68,6 +68,12 @@ pub struct State {
     pub open_image_view: bool,
     #[serde(skip)]
     pub dynamic_texture_id: Option<u32>,
+    #[serde(skip)]
+    pub surf_texture_id: u32,
+    #[serde(skip)]
+    pub texture_width: f32,
+    #[serde(skip)]
+    pub texture_height: f32,
 }
 
 impl State {
@@ -115,6 +121,9 @@ impl State {
             light_png_path: "".to_string(),
             open_image_view: false,
             dynamic_texture_id: None,
+            surf_texture_id: 0,
+            texture_width: 0.0,
+            texture_height: 0.0,
         };
 
         if let Err(e) = state.load_settings() {

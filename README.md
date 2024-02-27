@@ -250,7 +250,7 @@ For UNIX:
 
 * ~~make finally a separate .rs file instead of one big~~  
 
-* make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and imgui)
+* ~~make a viewport instead of current solution with canvas (probably need a separate window inside of app with combination of sdl2 and OpenGL)~~
 
 * combine with wgpu ([Example from sdl2 lib](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) and [imgui renderer for wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
 
