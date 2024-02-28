@@ -108,11 +108,13 @@ const VERTEX_SHADER_SOURCE: &str = r#"
     layout (location = 1) in vec2 aTexCoord;
 
     uniform vec2 uImagePos; // Uniform for image position
+    uniform float uScale; // Uniform for image scale
 
     out vec2 TexCoord;
 
     void main() {
-        gl_Position = vec4(aPos.x + uImagePos.x, aPos.y + uImagePos.y, aPos.z, 1.0);
+        vec3 pos = vec3(aPos.x * uScale, aPos.y * uScale, aPos.z); // Apply scale to positions
+        gl_Position = vec4(pos.x + uImagePos.x, pos.y + uImagePos.y, pos.z, 1.0);
         TexCoord = aTexCoord;
     }
 "#;
@@ -297,6 +299,11 @@ pub fn launcher() -> Result<(), String> {
                     // Update IMAGE_POS on mouse drag to move the image
                     texture_pos[0].0 = x as f32;
                     texture_pos[0].1 = y as f32;
+                },
+                sdl2::event::Event::MouseWheel { y, .. } => {
+                    // Zoom in or out when the mouse wheel is used
+                    texture_scale += y as f32 * 0.1; // Adjust the scale factor based on the wheel movement
+                    texture_scale = texture_scale.max(0.1).min(10.0); // Constrain the scale factor to reasonable values
                 },
                 sdl2::event::Event::Quit { .. } => {
                     state.canvas_present = true;
@@ -954,9 +961,12 @@ pub fn launcher() -> Result<(), String> {
                 // Update the uniform for image position with normalized coordinates
                 let uniform_name = CString::new("uImagePos").unwrap();
                 let pos_uniform = gl::GetUniformLocation(shader_program, uniform_name.as_ptr());
+                let scale_name = CString::new("uScale").unwrap();
+                let scale_uniform = gl::GetUniformLocation(shader_program, scale_name.as_ptr()); // Uniform for scale
                 let normalized_x = (texture_pos[0].0 / win_width as f32) * 2.0 - 1.0; // Normalize to [-1, 1]
                 let normalized_y = 1.0 - (texture_pos[0].1 / win_height as f32) * 2.0; // Normalize to [-1, 1] and flip Y
                 gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
+                gl::Uniform1f(scale_uniform, texture_scale);
 
                 // Bind texture
                 gl::BindTexture(gl::TEXTURE_2D, state.surf_texture_id);
