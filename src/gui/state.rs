@@ -22,7 +22,6 @@ pub struct State {
     #[serde(skip)]
     pub open_preferences: bool,
     pub general_settings: GeneralSettings,
-    pub gameobject_position: Option<(f32, f32)>,
     pub texture_path: Option<String>,
     #[serde(skip)]
     pub terminal: Terminal,
@@ -70,10 +69,6 @@ pub struct State {
     pub dynamic_texture_id: Option<u32>,
     #[serde(skip)]
     pub surf_texture_id: u32,
-    #[serde(skip)]
-    pub texture_width: f32,
-    #[serde(skip)]
-    pub texture_height: f32,
 }
 
 impl State {
@@ -97,7 +92,6 @@ impl State {
                 font_size: 18.0,
                 font_change_requested: false,
             },
-            gameobject_position: None,
             texture_path: None,
             terminal: Terminal::new(50),
             undo_stack: Vec::new(),
@@ -122,8 +116,6 @@ impl State {
             open_image_view: false,
             dynamic_texture_id: None,
             surf_texture_id: 0,
-            texture_width: 0.0,
-            texture_height: 0.0,
         };
 
         if let Err(e) = state.load_settings() {

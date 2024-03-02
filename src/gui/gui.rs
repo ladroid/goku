@@ -24,9 +24,6 @@ use std::ffi::CString;
 use std::ptr;
 use std::str;
 
-// Add a boolean flag to track whether the image is being dragged
-static mut IS_DRAGGING: bool = false;
-
 fn sdl_surface_to_gl_texture(surface: &sdl2::surface::Surface) -> Result<u32, String> {
     let mut texture_id: u32 = 0;
     unsafe {
@@ -41,6 +38,9 @@ fn sdl_surface_to_gl_texture(surface: &sdl2::surface::Surface) -> Result<u32, St
         let format = match surface.pixel_format_enum() {
             sdl2::pixels::PixelFormatEnum::RGB24 => gl::RGB,
             sdl2::pixels::PixelFormatEnum::RGBA32 => gl::RGBA,
+            // Ensure correct format is specified for loaded image
+            sdl2::pixels::PixelFormatEnum::RGB888 => gl::RGB,
+            sdl2::pixels::PixelFormatEnum::ARGB8888 => gl::RGBA,
             _ => return Err("Unsupported pixel format".to_string()),
         };
 
@@ -109,11 +109,16 @@ const VERTEX_SHADER_SOURCE: &str = r#"
 
     uniform vec2 uImagePos; // Uniform for image position
     uniform float uScale; // Uniform for image scale
+    uniform int uImageIndex; // Uniform to differentiate images
 
     out vec2 TexCoord;
 
     void main() {
-        vec3 pos = vec3(aPos.x * uScale, aPos.y * uScale, aPos.z); // Apply scale to positions
+        vec3 pos = vec3(aPos.x * uScale, aPos.y * uScale, aPos.z);
+        // Adjust position based on image index to avoid overlap
+        if(uImageIndex == 1) {
+            pos.x += 0.1; // Slightly move the second image to the right
+        }
         gl_Position = vec4(pos.x + uImagePos.x, pos.y + uImagePos.y, pos.z, 1.0);
         TexCoord = aTexCoord;
     }
@@ -125,12 +130,42 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
 
     in vec2 TexCoord;
 
-    uniform sampler2D texture1;
+    // Single texture sampler
+    uniform sampler2D textureSampler;
 
     void main() {
-        FragColor = texture(texture1, TexCoord);
+        FragColor = texture(textureSampler, TexCoord);
     }
 "#;
+
+// Define a struct to hold information about each image
+struct Image {
+    texture_id: u32,
+    width: u32,
+    height: u32,
+    pos_x: f32,
+    pos_y: f32,
+    scale: f32,
+    is_dragging: bool,
+    offset_x: f32,
+    offset_y: f32,
+}
+
+impl Image {
+    fn new(texture_id: u32, width: u32, height: u32, pos_x: f32, pos_y: f32) -> Self {
+        Image {
+            texture_id,
+            width,
+            height,
+            pos_x,
+            pos_y,
+            scale: 1.0,
+            is_dragging: false,
+            offset_x: 0.0,
+            offset_y: 0.0,
+        }
+    }
+}
 
 pub fn launcher() -> Result<(), String> {
     sdl2::image::init(InitFlag::PNG)?;
@@ -213,11 +248,10 @@ pub fn launcher() -> Result<(), String> {
     let renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| video_subsystem.gl_get_proc_address(s) as _);
 
     /* load texture from PNG file */
-    let mut textures = Vec::new();
-
-    /* Initialize texture position variables */
-    let mut texture_pos: Vec<(f32, f32)> = vec![(301.676, 22.346)];  // One position for each texture
-    let mut texture_scale: f32 = 1.0;
+    let mut image_path:Vec<String> = Vec::new();
+    let mut textures:Vec<Image> = Vec::new();
+    let mut current_pos_x = 301.676; // Starting position for the first image
+    let pos_offset_x = 301.676; // Horizontal offset between images
 
     /* start main loop */
     let mut event_pump = sdl.event_pump().unwrap();
@@ -286,24 +320,66 @@ pub fn launcher() -> Result<(), String> {
 
             match event {
                 sdl2::event::Event::MouseButtonDown { x, y, mouse_btn: sdl2::mouse::MouseButton::Left, .. } => {
-                    // Update IMAGE_POS on mouse down to set the initial position
-                    unsafe {
+                    // Check if the click is within any of the image boundaries
+                    for image in &mut textures {
                         let x_float = x as f32;
                         let y_float = y as f32;
-                        if x_float >= texture_pos[0].0 && x_float <= texture_pos[0].0 + state.texture_width && y_float >= texture_pos[1].1 && y_float <= texture_pos[0].1 + state.texture_height {
-                            IS_DRAGGING = true;
-                        }
+                        let texture_width = image.width as f32; // Width of the loaded image
+                        let texture_height = image.height as f32; // Height of the loaded image
+                        if x_float >= image.pos_x && x_float <= image.pos_x + texture_width &&
+                            y_float >= image.pos_y && y_float <= image.pos_y + texture_height {
+                                // Start dragging if clicked inside the image
+                                image.is_dragging = true;
+                                // Store initial click position relative to image position
+                                let click_offset_x = x_float - image.pos_x;
+                                let click_offset_y = y_float - image.pos_y;
+                                // Store the offset for later use during dragging
+                                image.offset_x = click_offset_x;
+                                image.offset_y = click_offset_y;
+                            }
+                    }
+                },
+                // Mouse button up event
+                sdl2::event::Event::MouseButtonUp { .. } => {
+                    // Reset the dragging flag
+                    for image in &mut textures {
+                        image.is_dragging = false;
                     }
                 },
                 sdl2::event::Event::MouseMotion { x, y, mousestate, .. } if mousestate.left() => {
-                    // Update IMAGE_POS on mouse drag to move the image
-                    texture_pos[0].0 = x as f32;
-                    texture_pos[0].1 = y as f32;
+                    // Update image position only if dragging
+                    for image in &mut textures {
+                        if image.is_dragging {
+                            // Update image position based on mouse movement
+                            image.pos_x = x as f32 - image.offset_x;
+                            image.pos_y = y as f32 - image.offset_y;
+                        }
+                    }
                 },
                 sdl2::event::Event::MouseWheel { y, .. } => {
                     // Zoom in or out when the mouse wheel is used
-                    texture_scale += y as f32 * 0.1; // Adjust the scale factor based on the wheel movement
-                    texture_scale = texture_scale.max(0.1).min(10.0); // Constrain the scale factor to reasonable values
+                    for image in &mut textures {
+                        image.scale += y as f32 * 0.1; // Adjust the scale factor based on the wheel movement
+                        image.scale = image.scale.max(0.1).min(10.0); // Constrain the scale factor to reasonable values
+                    }
+                },
+                sdl2::event::Event::Window { win_event, .. } => {
+                    match win_event {
+                        sdl2::event::WindowEvent::Resized(new_width, new_height) => {
+                            unsafe {
+                                let (win_width, win_height) = (new_width as f32, new_height as f32);
+                                // Adjust image position and scale
+                                for image in &mut textures {
+                                    image.pos_x *= new_width as f32 / win_width;
+                                    image.pos_y *= new_height as f32 / win_height;
+                                }
+
+                                gl::Viewport(0, 0, new_width, new_height); // Update viewport
+                            }
+                            
+                        },
+                        _ => {}
+                    }
                 },
                 sdl2::event::Event::Quit { .. } => {
                     state.canvas_present = true;
@@ -552,15 +628,15 @@ pub fn launcher() -> Result<(), String> {
                     }
                 },
                 Some(component) if component == "GameObject" => {
-                    for (idx, pos) in texture_pos.iter_mut().enumerate() {
+                    for (idx, pos) in textures.iter_mut().enumerate() {
                         ui.text(format!("Texture {} position X:", idx + 1));
-                        ui.slider(&format!("X{}", idx + 1), 0.0, 1000.0, &mut pos.0);
+                        ui.slider(&format!("X{}", idx + 1), 0.0, 1000.0, &mut pos.pos_x);
                         ui.text(format!("Texture {} position Y:", idx + 1));
-                        ui.slider(&format!("Y{}", idx + 1), 0.0, 1000.0, &mut pos.1);
+                        ui.slider(&format!("Y{}", idx + 1), 0.0, 1000.0, &mut pos.pos_y);
+                        ui.text("Texture scale:");
+                        ui.slider("Scale", 0.1, 10.0, &mut pos.scale);
                     }
-                    state.gameobject_position = Some(texture_pos[0]);
-                    ui.text("Texture scale:");
-                    ui.slider("Scale", 0.1, 10.0, &mut texture_scale);
+                    
                     // Your GUI here
                     if ui.button("Generate Template") {
                         // Set the flag to show the save dialog
@@ -589,31 +665,31 @@ pub fn launcher() -> Result<(), String> {
                     
                     for (idx, texture) in state.textures.iter_mut().enumerate() {
                         ui.text(format!("Texture {} path: {:?}", idx + 1, texture.path));
-
-                        // Temporary variables for ImGui input
+                        // image_path.push(texture.clone().path.into_os_string().into_string().unwrap()); // This line should be removed to avoid duplicates
+                
                         let mut temp_width = texture.width as i32;
                         let mut temp_height = texture.height as i32;
-
+                
                         ui.input_text("Tag Name", &mut texture.tag_name).build();
                         ui.input_int("Width", &mut temp_width).build();
                         ui.input_int("Height", &mut temp_height).build();
-
-                        // Clamp negative values to zero (or handle as needed)
+                
                         texture.width = temp_width.max(0) as u32;
                         texture.height = temp_height.max(0) as u32;
-
-                        let p = texture.path.clone();
+                
                         if ui.button(&format!("Load Texture {}", idx + 1)) {
-                            let tex = Surface::from_file(&p).unwrap();
-                            state.texture_width = tex.width() as f32;
-                            state.texture_height = tex.height() as f32;
-                            state.surf_texture_id = sdl_surface_to_gl_texture(&tex).unwrap();
-                            textures.push(tex);
-                            texture_pos.push((301.676, 22.346)); // Add a new position for the new texture
-                            state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
+                            // Load and display the texture only if it's not already displayed
+                            let tex_path_str = texture.path.to_str().unwrap_or_default();
+                            if !image_path.contains(&tex_path_str.to_string()) {
+                                let tex = Surface::from_file(&tex_path_str).unwrap();
+                                state.surf_texture_id = sdl_surface_to_gl_texture(&tex).unwrap();
+                                textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), current_pos_x, 50.0));
+                                current_pos_x += pos_offset_x;
+                                state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
+                                image_path.push(tex_path_str.to_string()); // Add the path to the list after loading
+                            }
                         }
-                        state.texture_path = Some(texture.path.to_str().unwrap().to_string());
-                    }                    
+                    }                   
                 },  
                 Some(component) if component == "Ambient Filter" => {
                     if state.ambient_filters.is_empty() {
@@ -952,28 +1028,41 @@ pub fn launcher() -> Result<(), String> {
 
             unsafe {
                 // Clear the screen to grey
-                gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+                gl::ClearColor(0.5, 0.5, 0.5, 1.0);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
-
+    
                 // Use the shader program
                 gl::UseProgram(shader_program);
-
-                // Update the uniform for image position with normalized coordinates
-                let uniform_name = CString::new("uImagePos").unwrap();
-                let pos_uniform = gl::GetUniformLocation(shader_program, uniform_name.as_ptr());
-                let scale_name = CString::new("uScale").unwrap();
-                let scale_uniform = gl::GetUniformLocation(shader_program, scale_name.as_ptr()); // Uniform for scale
-                let normalized_x = (texture_pos[0].0 / win_width as f32) * 2.0 - 1.0; // Normalize to [-1, 1]
-                let normalized_y = 1.0 - (texture_pos[0].1 / win_height as f32) * 2.0; // Normalize to [-1, 1] and flip Y
-                gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
-                gl::Uniform1f(scale_uniform, texture_scale);
-
-                // Bind texture
-                gl::BindTexture(gl::TEXTURE_2D, state.surf_texture_id);
-
-                // Draw the quad
+            
+                // Bind vertex array object
                 gl::BindVertexArray(vao);
-                gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+                for (index, image) in textures.iter().enumerate() {
+                    // Activate texture unit and bind the image texture
+                    gl::ActiveTexture(gl::TEXTURE0 + index as u32); // Use separate texture units for each image
+                    gl::BindTexture(gl::TEXTURE_2D, image.texture_id);
+            
+                    // Update shader uniforms for image position, scale, and index
+                    let uniform_name = CString::new("uImagePos").unwrap();
+                    let pos_uniform = gl::GetUniformLocation(shader_program, uniform_name.as_ptr());
+                    let scale_name = CString::new("uScale").unwrap();
+                    let scale_uniform = gl::GetUniformLocation(shader_program, scale_name.as_ptr());
+                    let image_index_name = CString::new("uImageIndex").unwrap();
+                    let image_index_uniform = gl::GetUniformLocation(shader_program, image_index_name.as_ptr());
+            
+                    let normalized_x = (image.pos_x / win_width as f32) * 2.0 - 1.0;
+                    let normalized_y = 1.0 - (image.pos_y / win_height as f32) * 2.0;
+                    gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
+                    gl::Uniform1f(scale_uniform, image.scale);
+                    gl::Uniform1i(image_index_uniform, index as i32);
+            
+                    // Ensure the shader uses the correct texture unit
+                    let texture_name = CString::new("textureSampler").unwrap();
+                    let texture_uniform = gl::GetUniformLocation(shader_program, texture_name.as_ptr());
+                    gl::Uniform1i(texture_uniform, index as i32); // Match texture unit to index
+            
+                    // Draw the quad
+                    gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+                }
             }
         }
 
