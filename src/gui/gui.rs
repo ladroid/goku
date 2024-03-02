@@ -138,6 +138,32 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
     }
 "#;
 
+// Add this struct to manage the viewport state
+struct ViewportState {
+    offset_x: f32,
+    offset_y: f32,
+}
+
+impl ViewportState {
+    fn new() -> Self {
+        ViewportState {
+            offset_x: 0.0,
+            offset_y: 0.0,
+        }
+    }
+    
+    // Function to update the viewport offset based on keyboard input
+    fn update_offset(&mut self, keycode: sdl2::keyboard::Keycode, delta: f32) {
+        match keycode {
+            sdl2::keyboard::Keycode::W => self.offset_y -= delta,
+            sdl2::keyboard::Keycode::S => self.offset_y += delta,
+            sdl2::keyboard::Keycode::A => self.offset_x -= delta,
+            sdl2::keyboard::Keycode::D => self.offset_x += delta,
+            _ => {},
+        }
+    }
+}
+
 // Define a struct to hold information about each image
 struct Image {
     texture_id: u32,
@@ -313,12 +339,18 @@ pub fn launcher() -> Result<(), String> {
         gl::EnableVertexAttribArray(1);
     }
 
+    let mut viewport_state = ViewportState::new();
+
     loop {
         for event in event_pump.poll_iter() {
             /* pass all events to imgui platform */
             platform.handle_event(&mut imgui, &event);
 
             match event {
+                sdl2::event::Event::KeyDown { keycode: Some(keycode), .. } => {
+                    // Update the viewport offset based on WASD keys
+                    viewport_state.update_offset(keycode, 10.0); // Adjust the delta value as needed for sensitivity
+                },
                 sdl2::event::Event::MouseButtonDown { x, y, mouse_btn: sdl2::mouse::MouseButton::Left, .. } => {
                     // Check if the click is within any of the image boundaries
                     for image in &mut textures {
@@ -1049,8 +1081,13 @@ pub fn launcher() -> Result<(), String> {
                     let image_index_name = CString::new("uImageIndex").unwrap();
                     let image_index_uniform = gl::GetUniformLocation(shader_program, image_index_name.as_ptr());
             
-                    let normalized_x = (image.pos_x / win_width as f32) * 2.0 - 1.0;
-                    let normalized_y = 1.0 - (image.pos_y / win_height as f32) * 2.0;
+                    // Adjust positions by the viewport offset before rendering
+                    let adjusted_pos_x = image.pos_x + viewport_state.offset_x;
+                    let adjusted_pos_y = image.pos_y + viewport_state.offset_y;
+
+                    // Use adjusted positions for rendering
+                    let normalized_x = (adjusted_pos_x / win_width as f32) * 2.0 - 1.0;
+                    let normalized_y = 1.0 - (adjusted_pos_y / win_height as f32) * 2.0;
                     gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
                     gl::Uniform1f(scale_uniform, image.scale);
                     gl::Uniform1i(image_index_uniform, index as i32);
