@@ -24,3 +24,7 @@ pub mod about_info;
 pub mod display_component_tree;
 
 pub mod main_functionality;
+
+pub mod generate_template;
+
+pub mod shader;

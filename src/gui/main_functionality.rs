@@ -288,3 +288,50 @@ pub fn open_state() -> std::io::Result<Option<State>> {
         }
     }
 }
+
+#[allow(dead_code)]
+pub fn is_vscode_installed() -> bool {
+    if cfg!(target_os = "windows") {
+        // Windows-specific logic
+        std::process::Command::new("cmd")
+            .args(["/C", "code --version"])
+            .output()
+            .is_ok()
+    } else {
+        // Unix-like OS logic
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg("code --version")
+            .output()
+            .is_ok()
+    }
+}
+
+#[allow(dead_code)]
+pub fn user_wants_to_save(ui: &imgui::Ui, show_save_dialog: &mut bool) -> Option<bool> {
+    let mut result = None;
+
+    if *show_save_dialog {
+        ui.open_popup("Save Scene?");
+    }
+
+    ui.modal_popup("Save Scene?", || {
+        ui.text("Do you want to save the scene?");
+
+        if ui.button("Yes") {
+            result = Some(true);
+            *show_save_dialog = false;
+            ui.close_current_popup();
+        }
+
+        ui.same_line();
+
+        if ui.button("No") {
+            result = Some(false);
+            *show_save_dialog = false;
+            ui.close_current_popup();
+        }
+    });
+
+    result
+}
