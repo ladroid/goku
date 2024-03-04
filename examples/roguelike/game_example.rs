@@ -299,7 +299,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         nalgebra::Vector2::new(400.0, 300.0),
         100.0,
         0.6,  // Intensity: 0.0 (off) to 1.0 (full intensity)
-        sdl2::pixels::Color::RGB(255, 255, 255)  // White color for pure light. You can change this!
+        two_d::Color::new(255, 255, 255)  // White color for pure light. You can change this!
     );
     let mut darkness_texture = texture_creator.create_texture_target(None, 800, 600)?;
     darkness_texture.set_blend_mode(sdl2::render::BlendMode::Mod);
@@ -512,23 +512,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for x in 0..tile_map.tile_map[0].len() {
                         let tile_index = tile_map.tile_map[y][x] as usize;
                         let texture_manager = &tile_map.textures[tile_index];
-                        let rect = sdl2::rect::Rect::new((x as i32 * TILE_SIZE as i32) as i32, (y as i32 * TILE_SIZE as i32) as i32, TILE_SIZE as u32, TILE_SIZE as u32);
+                        let rect = &two_d::Rect::new((x as i32 * TILE_SIZE as i32) as i32, (y as i32 * TILE_SIZE as i32) as i32, TILE_SIZE as u32, TILE_SIZE as u32);
                         let transformed_rect = camera.transform_rect(rect);
-                        texture_manager.render_texture(&mut window.canvas, transformed_rect)?;
+                        texture_manager.render_texture(&mut window.canvas, transformed_rect.unwrap())?;
                     }
                 }
 
                 // Render player
                 if let Some(current_animation_tag) = &player.texture_manager_anim.current_animation {
                     if let Some(animated_texture) = player.texture_manager_anim.animations.get(current_animation_tag) {
-                        let player_rect = sdl2::rect::Rect::new(
+                        let player_rect = &two_d::Rect::new(
                             player.position.x as i32, 
                             player.position.y as i32, 
                             animated_texture.sprite_sheet.frame_width * 2, 
                             animated_texture.sprite_sheet.frame_height * 2
                         );
                         let transformed_player_rect = camera.transform_rect(player_rect);
-                        player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect, flip_horizontal as u32)?;
+                        player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect.unwrap(), flip_horizontal as u32)?;
                     }
                 }
 
@@ -537,26 +537,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // Render the enemy using its texture and position
                     if let Some(current_animation_tag) = &enemy.texture_manager.current_animation {
                         if let Some(animated_texture) = enemy.texture_manager.animations.get(current_animation_tag) {
-                            let player_rect = sdl2::rect::Rect::new(
+                            let player_rect = &two_d::Rect::new(
                                 enemy.position.x as i32, 
                                 enemy.position.y as i32, 
                                 animated_texture.sprite_sheet.frame_width * 2, 
                                 animated_texture.sprite_sheet.frame_height * 2
                             );
                             let transformed_player_rect = camera.transform_rect(player_rect);
-                            enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect, 0)?;
+                            enemy.texture_manager.render_texture(&mut window.canvas, transformed_player_rect.unwrap(), 0)?;
                         }
                     }
                 }               
 
                 // Assuming you're using a similar rendering method for the ladder as for other tiles
-                let ladder_rect = sdl2::rect::Rect::new(
+                let ladder_rect = &two_d::Rect::new(
                     (ladder_position.0 as i32 * TILE_SIZE as i32) as i32, 
                     (ladder_position.1 as i32 * TILE_SIZE as i32) as i32, 
                     TILE_SIZE as u32, TILE_SIZE as u32
                 );
                 let transformed_ladder_rect = camera.transform_rect(ladder_rect);
-                ladder.render_texture(&mut window.canvas, transformed_ladder_rect)?;
+                ladder.render_texture(&mut window.canvas, transformed_ladder_rect.unwrap())?;
 
                 // Call the move_towards_player function for each enemy
                 if player_moved {
