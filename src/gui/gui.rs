@@ -521,7 +521,7 @@ pub fn launcher() -> Result<(), String> {
                         let file = FileDialog::new()
                             .add_filter("PNG Image", &["png"])
                             .pick_file();
-
+                
                         if let Some(file_path) = file {
                             state.textures.push(TextureComponent {
                                 path: file_path,
@@ -534,23 +534,31 @@ pub fn launcher() -> Result<(), String> {
                             state.terminal.log_error("No file chosen");
                         }
                     }
-                    
+                
+                    let mut width_changes = vec![0; state.textures.len()];
+                    let mut height_changes = vec![0; state.textures.len()];
+                
                     for (idx, texture) in state.textures.iter_mut().enumerate() {
                         ui.text(format!("Texture {} path: {:?}", idx + 1, texture.path));
-                        // image_path.push(texture.clone().path.into_os_string().into_string().unwrap()); // This line should be removed to avoid duplicates
+                        
+                        let original_width = texture.width;
+                        let original_height = texture.height;
                 
                         let mut temp_width = texture.width as i32;
                         let mut temp_height = texture.height as i32;
                 
-                        ui.input_text("Tag Name", &mut texture.tag_name).build();
-                        ui.input_int("Width", &mut temp_width).build();
-                        ui.input_int("Height", &mut temp_height).build();
+                        ui.input_text(format!("Tag Name {}", idx + 1), &mut texture.tag_name).build();
+                        if ui.input_int(format!("Width {}", idx + 1), &mut temp_width).build() {
+                            width_changes[idx] = temp_width as u32 - original_width;
+                        }
+                        if ui.input_int(format!("Height {}", idx + 1), &mut temp_height).build() {
+                            height_changes[idx] = temp_height as u32 - original_height;
+                        }
                 
-                        texture.width = temp_width.max(0) as u32;
-                        texture.height = temp_height.max(0) as u32;
+                        texture.width = (original_width as i32 + width_changes[idx] as i32).max(0) as u32;
+                        texture.height = (original_height as i32 + height_changes[idx] as i32).max(0) as u32;
                 
                         if ui.button(&format!("Load Texture {}", idx + 1)) {
-                            // Load and display the texture only if it's not already displayed
                             let tex_path_str = texture.path.to_str().unwrap_or_default();
                             if !image_path.contains(&tex_path_str.to_string()) {
                                 let tex = Surface::from_file(&tex_path_str).unwrap();
@@ -558,11 +566,11 @@ pub fn launcher() -> Result<(), String> {
                                 textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), current_pos_x, 50.0));
                                 current_pos_x += pos_offset_x;
                                 state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
-                                image_path.push(tex_path_str.to_string()); // Add the path to the list after loading
+                                image_path.push(tex_path_str.to_string());
                             }
                         }
-                    }                   
-                },  
+                    }
+                },                
                 Some(component) if component == "Ambient Filter" => {
                     if state.ambient_filters.is_empty() {
                         // Add a new AmbientFilterComponent with a default intensity
