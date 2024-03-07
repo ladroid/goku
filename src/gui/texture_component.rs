@@ -6,6 +6,7 @@ pub struct TextureComponent {
     pub tag_name: String,
     pub width: u32,
     pub height: u32,
+    pub frames: u32,
 }
 
 impl Default for TextureComponent {
@@ -15,6 +16,7 @@ impl Default for TextureComponent {
             tag_name: String::new(),
             width: 0,
             height: 0,
+            frames: 0,
         }
     }
 }

@@ -87,18 +87,19 @@ pub const VERTEX_SHADER_SOURCE: &str = r#"
 
     uniform vec2 uImagePos; // Uniform for image position
     uniform float uScale; // Uniform for image scale
-    uniform int uImageIndex; // Uniform to differentiate images
+    uniform int uCurrentFrame; // Current frame for animation
+    uniform int uFrames; // Total number of frames in the sprite sheet
 
     out vec2 TexCoord;
+    out float Frame;
+    out float TotalFrames;
 
     void main() {
         vec3 pos = vec3(aPos.x * uScale, aPos.y * uScale, aPos.z);
-        // Adjust position based on image index to avoid overlap
-        if(uImageIndex == 1) {
-            pos.x += 0.1; // Slightly move the second image to the right
-        }
         gl_Position = vec4(pos.x + uImagePos.x, pos.y + uImagePos.y, pos.z, 1.0);
         TexCoord = aTexCoord;
+        Frame = float(uCurrentFrame);
+        TotalFrames = float(uFrames);
     }
 "#;
 
@@ -107,12 +108,19 @@ pub const FRAGMENT_SHADER_SOURCE: &str = r#"
     out vec4 FragColor;
 
     in vec2 TexCoord;
+    in float Frame;
+    in float TotalFrames;
 
-    // Single texture sampler
     uniform sampler2D textureSampler;
 
     void main() {
-        FragColor = texture(textureSampler, TexCoord);
+        // Calculate the width of a single frame
+        float frameWidth = 1.0 / TotalFrames;
+        // Calculate the offset based on the current frame
+        float offset = frameWidth * Frame;
+        // Adjust TexCoord.x based on the frame
+        vec2 frameTexCoord = vec2((TexCoord.x / TotalFrames) + offset, TexCoord.y);
+        FragColor = texture(textureSampler, frameTexCoord);
     }
 "#;
 
@@ -147,26 +155,43 @@ pub struct Image {
     pub texture_id: u32,
     pub width: u32,
     pub height: u32,
+    pub frames: usize,
+    pub current_frame: usize,
     pub pos_x: f32,
     pub pos_y: f32,
     pub scale: f32,
     pub is_dragging: bool,
     pub offset_x: f32,
     pub offset_y: f32,
+    pub animation: bool,
+    pub last_update: std::time::Instant,
+    pub frame_duration: std::time::Duration,
 }
 
 impl Image {
-    pub fn new(texture_id: u32, width: u32, height: u32, pos_x: f32, pos_y: f32) -> Self {
+    pub fn new(texture_id: u32, width: u32, height: u32, frames: usize, pos_x: f32, pos_y: f32) -> Self {
         Image {
             texture_id,
             width,
             height,
+            frames,
+            current_frame: 0,
             pos_x,
             pos_y,
             scale: 1.0,
             is_dragging: false,
             offset_x: 0.0,
             offset_y: 0.0,
+            animation: false,
+            last_update: std::time::Instant::now(),
+            frame_duration: std::time::Duration::from_millis(100),
+        }
+    }
+
+    pub fn update(&mut self) {
+        if self.animation && self.last_update.elapsed() >= self.frame_duration {
+            self.current_frame = (self.current_frame + 1) % self.frames;
+            self.last_update = std::time::Instant::now();
         }
     }
 }

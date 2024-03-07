@@ -528,6 +528,7 @@ pub fn launcher() -> Result<(), String> {
                                 tag_name: String::new(),  // default empty string
                                 width: 0,                 // default value, e.g., 0
                                 height: 0,                // default value, e.g., 0
+                                frames: 1, // Initialize with 1, will be updated later in UI
                             });
                         } else {
                             println!("No file chosen");
@@ -555,6 +556,12 @@ pub fn launcher() -> Result<(), String> {
                             height_changes[idx] = temp_height as u32 - original_height;
                         }
                 
+                        // Move frames input here to ensure it's visible and editable for each texture
+                        let mut frames = texture.frames as i32;
+                        if ui.input_int(format!("Frames {}", idx + 1), &mut frames).build() {
+                            texture.frames = frames.max(1) as u32; // Ensure frames is at least 1
+                        }
+                
                         texture.width = (original_width as i32 + width_changes[idx] as i32).max(0) as u32;
                         texture.height = (original_height as i32 + height_changes[idx] as i32).max(0) as u32;
                 
@@ -563,7 +570,7 @@ pub fn launcher() -> Result<(), String> {
                             if !image_path.contains(&tex_path_str.to_string()) {
                                 let tex = Surface::from_file(&tex_path_str).unwrap();
                                 state.surf_texture_id = sdl_surface_to_gl_texture(&tex).unwrap();
-                                textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), current_pos_x, 50.0));
+                                textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), texture.frames as usize, current_pos_x, 50.0));
                                 current_pos_x += pos_offset_x;
                                 state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
                                 image_path.push(tex_path_str.to_string());
@@ -732,6 +739,11 @@ pub fn launcher() -> Result<(), String> {
                         ui.checkbox(state.translate("Enable Fullscreen"), &mut state.general_settings.enable_fullscreen);
                         ui.checkbox(state.translate("Enable canvas present"), &mut state.canvas_present);
                         ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
+                        
+                        for (idx, tex) in textures.iter_mut().enumerate() {
+                            ui.checkbox(format!("Enable Animation {}", idx + 1), &mut tex.animation); // Toggle animation for the second image
+                        }
+
                         // Add controls for general settings here
                         ui.separator();
                         if ui.input_text(state.translate("Font Name"), &mut state.general_settings.font_name).build() {
@@ -906,46 +918,42 @@ pub fn launcher() -> Result<(), String> {
             // Inside the main loop, before rendering
             let (win_width, win_height) = canvas.window().size();
 
+            for image in &mut textures {
+                image.update();
+            }
+
             unsafe {
-                // Clear the screen to grey
                 gl::ClearColor(0.5, 0.5, 0.5, 1.0);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
     
-                // Use the shader program
                 gl::UseProgram(shader_program);
-            
-                // Bind vertex array object
                 gl::BindVertexArray(vao);
                 for (index, image) in textures.iter().enumerate() {
-                    // Activate texture unit and bind the image texture
-                    gl::ActiveTexture(gl::TEXTURE0 + index as u32); // Use separate texture units for each image
+                    gl::ActiveTexture(gl::TEXTURE0 + index as u32);
                     gl::BindTexture(gl::TEXTURE_2D, image.texture_id);
-            
-                    // Update shader uniforms for image position, scale, and index
-                    let uniform_name = CString::new("uImagePos").unwrap();
-                    let pos_uniform = gl::GetUniformLocation(shader_program, uniform_name.as_ptr());
+                    
+                    let pos_name = CString::new("uImagePos").unwrap();
+                    let pos_uniform = gl::GetUniformLocation(shader_program, pos_name.as_ptr());
                     let scale_name = CString::new("uScale").unwrap();
                     let scale_uniform = gl::GetUniformLocation(shader_program, scale_name.as_ptr());
-                    let image_index_name = CString::new("uImageIndex").unwrap();
-                    let image_index_uniform = gl::GetUniformLocation(shader_program, image_index_name.as_ptr());
-            
-                    // Adjust positions by the viewport offset before rendering
+                    let frame_name = CString::new("uCurrentFrame").unwrap();
+                    let frame_uniform = gl::GetUniformLocation(shader_program, frame_name.as_ptr());
+                    let frames_name = CString::new("uFrames").unwrap();
+                    let frames_uniform = gl::GetUniformLocation(shader_program, frames_name.as_ptr());
+    
                     let adjusted_pos_x = image.pos_x + viewport_state.offset_x;
                     let adjusted_pos_y = image.pos_y + viewport_state.offset_y;
-
-                    // Use adjusted positions for rendering
                     let normalized_x = (adjusted_pos_x / win_width as f32) * 2.0 - 1.0;
                     let normalized_y = 1.0 - (adjusted_pos_y / win_height as f32) * 2.0;
                     gl::Uniform2f(pos_uniform, normalized_x, normalized_y);
                     gl::Uniform1f(scale_uniform, image.scale);
-                    gl::Uniform1i(image_index_uniform, index as i32);
-            
-                    // Ensure the shader uses the correct texture unit
+                    gl::Uniform1i(frame_uniform, image.current_frame as i32);
+                    gl::Uniform1i(frames_uniform, image.frames as i32);
+                    
                     let texture_name = CString::new("textureSampler").unwrap();
                     let texture_uniform = gl::GetUniformLocation(shader_program, texture_name.as_ptr());
-                    gl::Uniform1i(texture_uniform, index as i32); // Match texture unit to index
-            
-                    // Draw the quad
+                    gl::Uniform1i(texture_uniform, index as i32);
+    
                     gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
                 }
             }
