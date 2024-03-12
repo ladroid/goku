@@ -246,6 +246,10 @@ For UNIX:
 1. Press Tools
 2. Press Build and choose Web
 
+## How to enable Viewport
+
+To enable Viewport go to Preferences -> General -> Enable canvas
+
 ## TODO (is prioritised)
 
 * ~~make finally a separate .rs file instead of one big~~  
