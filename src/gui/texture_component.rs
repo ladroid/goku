@@ -7,6 +7,7 @@ pub struct TextureComponent {
     pub width: u32,
     pub height: u32,
     pub frames: u32,
+    pub rows: usize,
 }
 
 impl Default for TextureComponent {
@@ -17,6 +18,7 @@ impl Default for TextureComponent {
             width: 0,
             height: 0,
             frames: 0,
+            rows: 0,
         }
     }
 }

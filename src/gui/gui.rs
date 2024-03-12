@@ -28,6 +28,7 @@ use crate::gui::shader::link_program;
 use crate::gui::shader::sdl_surface_to_gl_texture;
 use crate::gui::shader::VERTEX_SHADER_SOURCE;
 use crate::gui::shader::FRAGMENT_SHADER_SOURCE;
+use crate::gui::shader::load_texture_from_drop_event;
 use crate::deepl::deepl::call_python_add_function;
 use sdl2::image::{LoadSurface, InitFlag};
 use std::ffi::CString;
@@ -180,6 +181,7 @@ pub fn launcher() -> Result<(), String> {
     }
 
     let mut viewport_state = ViewportState::new();
+    let mut selected_image_index: Option<usize> = None;
 
     loop {
         for event in event_pump.poll_iter() {
@@ -233,6 +235,12 @@ pub fn launcher() -> Result<(), String> {
                     for image in &mut textures {
                         image.scale += y as f32 * 0.1; // Adjust the scale factor based on the wheel movement
                         image.scale = image.scale.max(0.1).min(10.0); // Constrain the scale factor to reasonable values
+                    }
+                },
+                sdl2::event::Event::DropFile { .. } => {
+                    if let Ok((texture_id, width, height)) = load_texture_from_drop_event(&event) {
+                        // Assuming a single frame and row for simplicity
+                        textures.push(Image::new(texture_id, width, height, 4, 3, 50.0, 50.0));
                     }
                 },
                 sdl2::event::Event::Window { win_event, .. } => {
@@ -529,6 +537,7 @@ pub fn launcher() -> Result<(), String> {
                                 width: 0,                 // default value, e.g., 0
                                 height: 0,                // default value, e.g., 0
                                 frames: 1, // Initialize with 1, will be updated later in UI
+                                rows: 3,
                             });
                         } else {
                             println!("No file chosen");
@@ -570,7 +579,7 @@ pub fn launcher() -> Result<(), String> {
                             if !image_path.contains(&tex_path_str.to_string()) {
                                 let tex = Surface::from_file(&tex_path_str).unwrap();
                                 state.surf_texture_id = sdl_surface_to_gl_texture(&tex).unwrap();
-                                textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), texture.frames as usize, current_pos_x, 50.0));
+                                textures.push(Image::new(state.surf_texture_id, tex.width(), tex.height(), texture.frames as usize, texture.rows, current_pos_x, 50.0));
                                 current_pos_x += pos_offset_x;
                                 state.terminal.log(format!("Texture {:?} loaded", texture.path.to_str()));
                                 image_path.push(tex_path_str.to_string());
@@ -740,8 +749,22 @@ pub fn launcher() -> Result<(), String> {
                         ui.checkbox(state.translate("Enable canvas present"), &mut state.canvas_present);
                         ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
                         
+                        let selected_index = selected_image_index; // Cache selected_image_index to avoid borrowing issues
                         for (idx, tex) in textures.iter_mut().enumerate() {
-                            ui.checkbox(format!("Enable Animation {}", idx + 1), &mut tex.animation); // Toggle animation for the second image
+                            let label = format!("Image {} - {}", idx, tex.texture_id);
+                            if ui.selectable(&label) {
+                                selected_image_index = Some(idx); // User has selected this image
+                            }
+                        }
+
+                        if let Some(selected_index) = selected_index {
+                            let mut selected_row_i32 = textures[selected_index].selected_row as i32; // Temporary i32 for imgui
+                            ui.input_int("Row", &mut selected_row_i32).build();
+                            if selected_row_i32 >= 0 {
+                                textures[selected_index].selected_row = selected_row_i32 as usize; // Convert back to usize
+                                textures[selected_index].set_selected_row(selected_row_i32 as usize);
+                            }
+                            ui.checkbox("Enable Animation", &mut textures[selected_index].animation); // Toggle animation for the selected image
                         }
 
                         // Add controls for general settings here
@@ -920,6 +943,9 @@ pub fn launcher() -> Result<(), String> {
 
             for image in &mut textures {
                 image.update();
+                if image.selected_row != image.current_row { // Add this line to restrict animation to the selected row
+                    image.current_row = image.selected_row;
+                }
             }
 
             unsafe {
@@ -940,7 +966,12 @@ pub fn launcher() -> Result<(), String> {
                     let frame_uniform = gl::GetUniformLocation(shader_program, frame_name.as_ptr());
                     let frames_name = CString::new("uFrames").unwrap();
                     let frames_uniform = gl::GetUniformLocation(shader_program, frames_name.as_ptr());
-    
+                    
+                    let row_name = CString::new("uCurrentRow").unwrap();
+                    let row_uniform = gl::GetUniformLocation(shader_program, row_name.as_ptr());
+                    let rows_name = CString::new("uRows").unwrap();
+                    let rows_uniform = gl::GetUniformLocation(shader_program, rows_name.as_ptr());
+
                     let adjusted_pos_x = image.pos_x + viewport_state.offset_x;
                     let adjusted_pos_y = image.pos_y + viewport_state.offset_y;
                     let normalized_x = (adjusted_pos_x / win_width as f32) * 2.0 - 1.0;
@@ -949,11 +980,14 @@ pub fn launcher() -> Result<(), String> {
                     gl::Uniform1f(scale_uniform, image.scale);
                     gl::Uniform1i(frame_uniform, image.current_frame as i32);
                     gl::Uniform1i(frames_uniform, image.frames as i32);
-                    
+
+                    gl::Uniform1i(row_uniform, image.current_row as i32);
+                    gl::Uniform1i(rows_uniform, image.rows as i32);
+
                     let texture_name = CString::new("textureSampler").unwrap();
                     let texture_uniform = gl::GetUniformLocation(shader_program, texture_name.as_ptr());
                     gl::Uniform1i(texture_uniform, index as i32);
-    
+
                     gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
                 }
             }

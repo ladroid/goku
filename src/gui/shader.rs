@@ -1,3 +1,4 @@
+use sdl2::image::LoadSurface;
 use std::ffi::CString;
 use std::ptr;
 use std::str;
@@ -85,14 +86,18 @@ pub const VERTEX_SHADER_SOURCE: &str = r#"
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec2 aTexCoord;
 
-    uniform vec2 uImagePos; // Uniform for image position
-    uniform float uScale; // Uniform for image scale
-    uniform int uCurrentFrame; // Current frame for animation
-    uniform int uFrames; // Total number of frames in the sprite sheet
+    uniform vec2 uImagePos;
+    uniform float uScale;
+    uniform int uCurrentFrame;
+    uniform int uFrames;
+    uniform int uCurrentRow;
+    uniform int uRows;
 
     out vec2 TexCoord;
     out float Frame;
     out float TotalFrames;
+    out float CurrentRow;
+    out float TotalRows;
 
     void main() {
         vec3 pos = vec3(aPos.x * uScale, aPos.y * uScale, aPos.z);
@@ -100,6 +105,8 @@ pub const VERTEX_SHADER_SOURCE: &str = r#"
         TexCoord = aTexCoord;
         Frame = float(uCurrentFrame);
         TotalFrames = float(uFrames);
+        CurrentRow = float(uCurrentRow);
+        TotalRows = float(uRows);
     }
 "#;
 
@@ -110,16 +117,20 @@ pub const FRAGMENT_SHADER_SOURCE: &str = r#"
     in vec2 TexCoord;
     in float Frame;
     in float TotalFrames;
+    in float CurrentRow;
+    in float TotalRows;
 
     uniform sampler2D textureSampler;
 
     void main() {
-        // Calculate the width of a single frame
+        // Calculate the width of a single frame and the height of a single row
         float frameWidth = 1.0 / TotalFrames;
-        // Calculate the offset based on the current frame
-        float offset = frameWidth * Frame;
-        // Adjust TexCoord.x based on the frame
-        vec2 frameTexCoord = vec2((TexCoord.x / TotalFrames) + offset, TexCoord.y);
+        float rowHeight = 1.0 / TotalRows;
+        // Calculate the offset based on the current frame and row
+        float offsetX = frameWidth * Frame;
+        float offsetY = rowHeight * CurrentRow;
+        // Adjust TexCoord based on the current frame and row
+        vec2 frameTexCoord = vec2((TexCoord.x * frameWidth) + offsetX, (TexCoord.y * rowHeight) + offsetY);
         FragColor = texture(textureSampler, frameTexCoord);
     }
 "#;
@@ -156,7 +167,10 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub frames: usize,
+    pub rows: usize,
     pub current_frame: usize,
+    pub current_row: usize,
+    pub selected_row: usize,
     pub pos_x: f32,
     pub pos_y: f32,
     pub scale: f32,
@@ -169,13 +183,16 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(texture_id: u32, width: u32, height: u32, frames: usize, pos_x: f32, pos_y: f32) -> Self {
+    pub fn new(texture_id: u32, width: u32, height: u32, frames: usize, rows: usize, pos_x: f32, pos_y: f32) -> Self {
         Image {
             texture_id,
             width,
             height,
             frames,
+            rows,
             current_frame: 0,
+            current_row: 0,
+            selected_row: 0,
             pos_x,
             pos_y,
             scale: 1.0,
@@ -191,7 +208,25 @@ impl Image {
     pub fn update(&mut self) {
         if self.animation && self.last_update.elapsed() >= self.frame_duration {
             self.current_frame = (self.current_frame + 1) % self.frames;
+            if self.current_frame == 0 {
+                self.current_row = (self.current_row + 1) % self.rows;
+            }
             self.last_update = std::time::Instant::now();
         }
+    }
+
+    pub fn set_selected_row(&mut self, row: usize) {
+        self.selected_row = row;
+        self.current_row = row; // Ensure the current row updates to the selected row
+    }
+}
+
+pub fn load_texture_from_drop_event(event: &sdl2::event::Event) -> Result<(u32, u32, u32), String> {
+    if let sdl2::event::Event::DropFile { filename, .. } = event {
+        let surface = sdl2::surface::Surface::from_file(std::path::Path::new(&filename))?;
+        let texture_id = sdl_surface_to_gl_texture(&surface)?;
+        Ok((texture_id, surface.width(), surface.height()))
+    } else {
+        Err("No file dropped".to_string())
     }
 }
