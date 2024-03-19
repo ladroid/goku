@@ -180,10 +180,11 @@ pub struct Image {
     pub animation: bool,
     pub last_update: std::time::Instant,
     pub frame_duration: std::time::Duration,
+    pub layer: i32, // New property for layering control
 }
 
 impl Image {
-    pub fn new(texture_id: u32, width: u32, height: u32, frames: usize, rows: usize, pos_x: f32, pos_y: f32) -> Self {
+    pub fn new(texture_id: u32, width: u32, height: u32, frames: usize, rows: usize, pos_x: f32, pos_y: f32, layer: i32) -> Self {
         Image {
             texture_id,
             width,
@@ -202,6 +203,7 @@ impl Image {
             animation: false,
             last_update: std::time::Instant::now(),
             frame_duration: std::time::Duration::from_millis(100),
+            layer,
         }
     }
 
