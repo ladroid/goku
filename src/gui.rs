@@ -28,3 +28,5 @@ pub mod main_functionality;
 pub mod generate_template;
 
 pub mod shader;
+
+pub mod grid_view;

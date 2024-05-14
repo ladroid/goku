@@ -232,3 +232,51 @@ pub fn load_texture_from_drop_event(event: &sdl2::event::Event) -> Result<(u32, 
         Err("No file dropped".to_string())
     }
 }
+
+pub fn generate_grid_vertices(spacing: f32, width: f32, height: f32) -> Vec<f32> {
+    let mut vertices = Vec::new();
+    let half_width = width / 2.0;
+    let half_height = height / 2.0;
+
+    // Vertical lines
+    for x in (-half_width as i32..=half_width as i32).step_by(spacing as usize) {
+        vertices.push(x as f32 / half_width); vertices.push(-1.0);
+        vertices.push(x as f32 / half_width); vertices.push(1.0);
+    }
+
+    // Horizontal lines
+    for y in (-half_height as i32..=half_height as i32).step_by(spacing as usize) {
+        vertices.push(-1.0); vertices.push(y as f32 / half_height);
+        vertices.push(1.0); vertices.push(y as f32 / half_height);
+    }
+
+    vertices
+}
+
+pub const GRID_VERTEX_SHADER_SOURCE: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec2 aPos;
+    uniform vec2 uOffset;
+
+    void main() {
+        gl_Position = vec4(aPos + uOffset, 0.0, 1.0);
+    }
+"#;
+
+pub const GRID_FRAGMENT_SHADER_SOURCE: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+
+    uniform vec4 uColor;
+
+    void main() {
+        FragColor = uColor;
+    }
+"#;
+
+pub fn create_grid_shader_program() -> Result<u32, String> {
+    let vert_shader = compile_shader(gl::VERTEX_SHADER, GRID_VERTEX_SHADER_SOURCE)?;
+    let frag_shader = compile_shader(gl::FRAGMENT_SHADER, GRID_FRAGMENT_SHADER_SOURCE)?;
+    let shader_program = link_program(vert_shader, frag_shader)?;
+    Ok(shader_program)
+}

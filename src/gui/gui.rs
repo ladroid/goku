@@ -29,6 +29,9 @@ use crate::gui::shader::sdl_surface_to_gl_texture;
 use crate::gui::shader::VERTEX_SHADER_SOURCE;
 use crate::gui::shader::FRAGMENT_SHADER_SOURCE;
 use crate::gui::shader::load_texture_from_drop_event;
+use crate::gui::shader::generate_grid_vertices;
+use crate::gui::shader::create_grid_shader_program;
+use crate::gui::grid_view::Grid;
 use crate::deepl::deepl::call_python_add_function;
 use sdl2::image::{LoadSurface, InitFlag};
 use std::ffi::CString;
@@ -182,6 +185,28 @@ pub fn launcher() -> Result<(), String> {
 
     let mut viewport_state = ViewportState::new();
     let mut selected_image_index: Option<usize> = None;
+
+    let grid = Grid::new(50.0, [0.8, 0.8, 0.8, 1.0]);
+    let grid_vertices = generate_grid_vertices(grid.spacing, 800.0, 600.0);
+    let grid_shader_program = create_grid_shader_program()?;
+    let (mut grid_vao, mut grid_vbo) = (0, 0);
+    unsafe {
+        gl::GenVertexArrays(1, &mut grid_vao);
+        gl::GenBuffers(1, &mut grid_vbo);
+
+        gl::BindVertexArray(grid_vao);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, grid_vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            (grid_vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+            grid_vertices.as_ptr() as *const gl::types::GLvoid,
+            gl::STATIC_DRAW,
+        );
+
+        gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, 2 * std::mem::size_of::<f32>() as gl::types::GLint, ptr::null());
+        gl::EnableVertexAttribArray(0);
+    }
 
     loop {
         for event in event_pump.poll_iter() {
@@ -756,7 +781,7 @@ pub fn launcher() -> Result<(), String> {
                         ui.checkbox(state.translate("Enable Fullscreen"), &mut state.general_settings.enable_fullscreen);
                         ui.checkbox(state.translate("Enable canvas present"), &mut state.canvas_present);
                         ui.checkbox(state.translate("Enable VSync"), &mut state.general_settings.enable_vsync);
-                        
+                        ui.checkbox("Grid View", &mut state.enable_grid_view);
                         let selected_index = selected_image_index; // Cache selected_image_index to avoid borrowing issues
                         for (idx, tex) in textures.iter_mut().enumerate() {
                             let label = format!("Image {} - {}", idx, tex.texture_id);
@@ -964,6 +989,21 @@ pub fn launcher() -> Result<(), String> {
             unsafe {
                 gl::ClearColor(0.5, 0.5, 0.5, 1.0);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
+
+                if state.enable_grid_view {
+                    // Draw Grid
+                    gl::UseProgram(grid_shader_program);
+                    gl::BindVertexArray(grid_vao);
+                    
+                    let grid_u_color = CString::new("uColor").unwrap();
+                    let color_location = gl::GetUniformLocation(grid_shader_program, grid_u_color.as_ptr());
+                    gl::Uniform4f(color_location, grid.color[0], grid.color[1], grid.color[2], grid.color[3]);
+                    
+                    let grid_u_offset = CString::new("uOffset").unwrap();
+                    let offset_location = gl::GetUniformLocation(grid_shader_program, grid_u_offset.as_ptr());
+                    gl::Uniform2f(offset_location, viewport_state.offset_x / win_width as f32 * 2.0, viewport_state.offset_y / win_height as f32 * 2.0);
+                    gl::DrawArrays(gl::LINES, 0, (grid_vertices.len() / 2) as i32);
+                }
     
                 gl::UseProgram(shader_program);
                 gl::BindVertexArray(vao);

@@ -69,6 +69,8 @@ pub struct State {
     pub dynamic_texture_id: Option<u32>,
     #[serde(skip)]
     pub surf_texture_id: u32,
+    #[serde(skip)]
+    pub enable_grid_view: bool,
 }
 
 impl State {
@@ -116,6 +118,7 @@ impl State {
             open_image_view: false,
             dynamic_texture_id: None,
             surf_texture_id: 0,
+            enable_grid_view: true,
         };
 
         if let Err(e) = state.load_settings() {
