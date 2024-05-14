@@ -1,3 +1,32 @@
+0.1.4 - []
+1. Modify two_d: Add Color class
+2. Modify simple_button.rs example
+3. Modify rounded_button.rs
+4. Modify ambient_filter.rs
+5. Modify character_with_animation.rs
+6. Modify particle_system.rs
+7. Modify point_light.rs
+8. Modify simple_parallax_example.rs
+9. Modify simple_profiler.rs
+10. Modify simple_raycast.rs
+11. Modify spot_light.rs
+12. Modify stylish_particle_system.rs
+13. Modify dialogue_system.rs
+14. Modify test_example.rs
+15. Modify profiler by showing memory consumption
+16. Modify profiler by showing CPU consumption
+17. Modify gui: Viewport first attempt
+18. Modify gui: Viewport zoom in/zoom out
+19. Modify gui: Viewport dragging is more smooth, able to add more textures
+20. Modify gui: Infinite and dynamic viewport space controlled by WASD 
+21. Modify gui: Separate in gui shader
+22. Update roguelike game
+23. Modify gui: Fix Texture component problem when width and height are changed on multiple textures
+24. Modify gui: Enable animation
+25. Modify gui: Improve animation, animating spritesheet by row, add drag&drop spritesheet
+26. Modify gui: Sprite goes either in front of or behind another
+27. Modify gui: Enable Grid View
+
 0.1.3 [Star Sprint]
 1. GUI: Move input handler into Preferences and remove unused parts of preferences
 2. GUI: Add Ambinet Filter Component
