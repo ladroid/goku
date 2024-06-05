@@ -496,6 +496,12 @@ pub fn launcher() -> Result<(), String> {
                         },
                     }
                 }
+                // TODO: Tilemap
+                if ui.menu_item("Tilemap") {
+                    // TODO: Use function to draw a tilemap
+                    println!("This is tilemap");
+                    state.terminal.log("Tilemap");
+                }
             });
             ui.menu(state.translate("Help"), || {
                 if ui.menu_item(state.translate("Documentation")) {

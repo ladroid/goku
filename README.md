@@ -248,7 +248,7 @@ For UNIX:
 
 ## How to enable Viewport
 
-To enable Viewport go to Preferences -> General -> Enable canvas
+To enable Viewport go to Preferences -> General -> Enable canvas the same is with Grid View mode
 
 ## TODO (is prioritised)
 
