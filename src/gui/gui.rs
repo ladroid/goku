@@ -32,6 +32,8 @@ use crate::gui::shader::load_texture_from_drop_event;
 use crate::gui::shader::generate_grid_vertices;
 use crate::gui::shader::create_grid_shader_program;
 use crate::gui::grid_view::Grid;
+use crate::gui::tilemap::Tilemap;
+use crate::gui::tilemap::load_texture_from_path;
 use crate::deepl::deepl::call_python_add_function;
 use sdl2::image::{LoadSurface, InitFlag};
 use std::ffi::CString;
@@ -207,6 +209,11 @@ pub fn launcher() -> Result<(), String> {
         gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, 2 * std::mem::size_of::<f32>() as gl::types::GLint, ptr::null());
         gl::EnableVertexAttribArray(0);
     }
+
+    let mut tilemap = Tilemap::new(16, 16);
+    // TODO: Fix it
+    let (_, tileset_width, tileset_height) = load_texture_from_path("your_path_to_tilemap.png")?;
+    let mut selected_tile: u32 = 0;
 
     loop {
         for event in event_pump.poll_iter() {
@@ -498,9 +505,7 @@ pub fn launcher() -> Result<(), String> {
                 }
                 // TODO: Tilemap
                 if ui.menu_item("Tilemap") {
-                    // TODO: Use function to draw a tilemap
-                    println!("This is tilemap");
-                    state.terminal.log("Tilemap");
+                    state.open_tilemap_editor = !state.open_tilemap_editor;
                 }
             });
             ui.menu(state.translate("Help"), || {
@@ -972,7 +977,72 @@ pub fn launcher() -> Result<(), String> {
                     state.terminal.log("Save canceled by user");
                 }
             }
-        }        
+        } 
+
+        if state.open_tilemap_editor {
+            ui.window("Tilemap Editor").opened(&mut state.open_tilemap_editor).build(|| {
+                // Temporary variables to hold converted values
+                let mut width = tilemap.width as i32;
+                let mut height = tilemap.height as i32;
+    
+                if ui.input_int("Width", &mut width).build() {
+                    tilemap.width = width as usize;
+                    tilemap.tiles.resize(tilemap.width * tilemap.height, 0);
+                }
+                if ui.input_int("Height", &mut height).build() {
+                    tilemap.height = height as usize;
+                    tilemap.tiles.resize(tilemap.width * tilemap.height, 0);
+                }
+    
+                if ui.button("Save Tilemap") {
+                    if let Err(e) = tilemap.save_to_file("tilemap.txt") {
+                        eprintln!("Error saving tilemap: {}", e);
+                    }
+                }
+                if ui.button("Load Tilemap") {
+                    match Tilemap::load_from_file("tilemap.txt") {
+                        Ok(loaded_tilemap) => {
+                            tilemap = loaded_tilemap;
+                        }
+                        Err(e) => {
+                            eprintln!("Error loading tilemap: {}", e);
+                        }
+                    }
+                }
+    
+                // Display the tilemap
+                for y in 0..tilemap.height {
+                    ui.columns(tilemap.width as i32, &format!("row_{}", y), true);
+                    for x in 0..tilemap.width {
+                        let tile = tilemap.get_tile(x, y);
+                        if ui.button(&format!("{}", tile)) {
+                            tilemap.set_tile(x, y, selected_tile);
+                        }
+                        ui.next_column();
+                    }
+                    ui.columns(1, "", false);
+                }
+            });
+    
+            ui.window("Tileset").opened(&mut state.open_tilemap_editor).build(|| {
+                // Display the tileset and allow tile selection
+                let tile_size = 32; // Example tile size
+                let cols = tileset_width / tile_size;
+                let rows = tileset_height / tile_size;
+    
+                for y in 0..rows {
+                    ui.columns(cols as i32, &format!("tileset_row_{}", y), true);
+                    for x in 0..cols {
+                        let tile_index = (y * cols + x) as u32;
+                        if ui.button(&format!("{}", tile_index)) {
+                            selected_tile = tile_index;
+                        }
+                        ui.next_column();
+                    }
+                    ui.columns(1, "", false);
+                }
+            });
+        }       
 
         /* render */
         unsafe {

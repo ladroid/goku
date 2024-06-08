@@ -30,3 +30,5 @@ pub mod generate_template;
 pub mod shader;
 
 pub mod grid_view;
+
+pub mod tilemap;
