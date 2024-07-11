@@ -211,8 +211,9 @@ pub fn launcher() -> Result<(), String> {
     }
 
     let mut tilemap = Tilemap::new(16, 16);
-    // TODO: Fix it
-    let (_, tileset_width, tileset_height) = load_texture_from_path("your_path_to_tilemap.png")?;
+    let mut tileset_texture_id = 0;
+    let mut tileset_width = 0;
+    let mut tileset_height = 0;
     let mut selected_tile: u32 = 0;
 
     loop {
@@ -1025,6 +1026,16 @@ pub fn launcher() -> Result<(), String> {
             });
     
             ui.window("Tileset").opened(&mut state.open_tilemap_editor).build(|| {
+                if ui.button("Load Tileset") {
+                    if let Some(path) = FileDialog::new().add_filter("PNG files", &["png"]).pick_file() {
+                        if let Ok((texture_id, width, height)) = load_texture_from_path(path.to_str().unwrap()) {
+                            tileset_texture_id = texture_id;
+                            tileset_width = width;
+                            tileset_height = height;
+                        }
+                    }
+                }
+
                 // Display the tileset and allow tile selection
                 let tile_size = 32; // Example tile size
                 let cols = tileset_width / tile_size;
