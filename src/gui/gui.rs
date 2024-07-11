@@ -34,6 +34,7 @@ use crate::gui::shader::create_grid_shader_program;
 use crate::gui::grid_view::Grid;
 use crate::gui::tilemap::Tilemap;
 use crate::gui::tilemap::load_texture_from_path;
+use crate::gui::tilemap::create_texture_slice;
 use crate::deepl::deepl::call_python_add_function;
 use sdl2::image::{LoadSurface, InitFlag};
 use std::ffi::CString;
@@ -211,8 +212,9 @@ pub fn launcher() -> Result<(), String> {
     }
 
     let mut tilemap = Tilemap::new(16, 16);
-    // TODO: Fix it
-    let (_, tileset_width, tileset_height) = load_texture_from_path("your_path_to_tilemap.png")?;
+    let mut tileset_texture_id = 0;
+    let mut tileset_width = 0;
+    let mut tileset_height = 0;
     let mut selected_tile: u32 = 0;
 
     loop {
@@ -1024,22 +1026,57 @@ pub fn launcher() -> Result<(), String> {
                 }
             });
     
-            ui.window("Tileset").opened(&mut state.open_tilemap_editor).build(|| {
-                // Display the tileset and allow tile selection
-                let tile_size = 32; // Example tile size
-                let cols = tileset_width / tile_size;
-                let rows = tileset_height / tile_size;
-    
-                for y in 0..rows {
-                    ui.columns(cols as i32, &format!("tileset_row_{}", y), true);
-                    for x in 0..cols {
-                        let tile_index = (y * cols + x) as u32;
-                        if ui.button(&format!("{}", tile_index)) {
-                            selected_tile = tile_index;
+            ui.window("Tileset").build(|| {
+                if ui.button("Load Tileset") {
+                    if let Some(path) = FileDialog::new().add_filter("PNG files", &["png"]).pick_file() {
+                        let path_str = path.to_str().unwrap();
+                        if let Ok((texture_id, width, height)) = load_texture_from_path(path_str) {
+                            tileset_texture_id = texture_id;
+                            tileset_width = width;
+                            tileset_height = height;
+            
+                            // Slicing the tileset into individual tiles
+                            let tile_size = 32; // Example tile size, you can modify as needed
+                            let cols = tileset_width / tile_size;
+                            let rows = tileset_height / tile_size;
+                            let mut tile_index = 1;
+            
+                            for y in 0..rows {
+                                for x in 0..cols {
+                                    if let Err(e) = create_texture_slice(
+                                        path_str,
+                                        x * tile_size,
+                                        y * tile_size,
+                                        tile_size,
+                                        tile_size,
+                                        tile_index,
+                                    ) {
+                                        eprintln!("Error creating slice {}: {}", tile_index, e);
+                                    }
+                                    tile_index += 1;
+                                }
+                            }
                         }
-                        ui.next_column();
                     }
-                    ui.columns(1, "", false);
+                }
+            
+                // Display the tileset and allow tile selection
+                if tileset_width > 0 && tileset_height > 0 {
+                    let tile_size = 32; // Example tile size
+                    let cols = tileset_width / tile_size;
+                    let rows = tileset_height / tile_size;
+            
+                    for y in 0..rows {
+                        ui.columns(cols as i32, &format!("tileset_row_{}", y), true);
+                        for x in 0..cols {
+                            let tile_index = (y * cols + x) as u32;
+                            if ui.button(&format!("{}", tile_index)) {
+                                selected_tile = tile_index;
+                            }
+                            ui.next_column();
+                        }
+                        ui.columns(1, "", false);
+                    }
                 }
             });
         }       
