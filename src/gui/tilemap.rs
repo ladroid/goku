@@ -66,3 +66,16 @@ pub fn load_texture_from_path(path: &str) -> Result<(u32, u32, u32), String> {
     let texture_id = sdl_surface_to_gl_texture(&surface)?;
     Ok((texture_id, surface.width(), surface.height()))
 }
+
+pub fn create_texture_slice(
+    tileset_path: &str,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    index: u32
+) -> Result<(), String> {
+    let img = image::open(tileset_path).map_err(|e| e.to_string())?;
+    let slice = img.crop_imm(x, y, width, height);
+    slice.save(format!("slice_{}.png", index)).map_err(|e| e.to_string())
+}
