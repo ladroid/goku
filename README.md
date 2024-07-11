@@ -239,7 +239,8 @@ For UNIX:
 2. extract everything
 3. command to run: `cargo run`
 
-**Important!!!** Currently GUI is still under the development, I'm trying to combine imgui and sdl2 together but need sometime to make it full compatible. Thus, if someone wants to use it is possible to add component `Scene` and write there a script. If you know how to combine them will be really great!
+> **Important!!!**
+> Currently GUI is still under the development, I'm trying to combine imgui and sdl2 together but need sometime to make it full compatible. Thus, if someone wants to use it is possible to add component `Scene` and write there a script. If you know how to combine them will be really great!
 
 ## How to build for Web
 
