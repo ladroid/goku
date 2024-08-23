@@ -10,28 +10,29 @@
 ![Repo Size](https://img.shields.io/github/repo-size/ladroid/goku)
 ![License](https://img.shields.io/github/license/ladroid/goku)
 
-[ [Englisch](../README.md) | [Deutsch](README.de.md) | [Spanisch](README.es.md) | [Französisch](README.fr.md) | [日本語](README.ja.md) ]
+[ [Englisch](README.md) | [Deutsch](docs/README.de.md) | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [日本語](docs/README.ja.md) ]
 
-
-Goku ist eine 2D-Spieleentwicklungsanwendung für Rust (in Zukunft Integration mit 3D-Spielen). Geschrieben rein in Rust.
+Goku ist eine 2D-Spieleentwicklungsanwendung für Rust (zukünftig mit Integration von 3D-Spielen). Komplett in Rust geschrieben.
 
 Es ist verfügbar für **macOS**, **Windows** und **Linux**.
 
-Derzeit basiert es auf SDL2.
+Basierend auf SDL2 (derzeit).
 
-Goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
+Goku ist fokussiert, leichtgewichtig und hat nur wenige Abhängigkeiten (hauptsächlich SDL2). Es bietet:
 
-* ein Fenster und eine Hauptschleife
+* Ein Fenster und eine Hauptschleife
 
-* 2D-Grafiken und Text
+* 2D-Grafik und Text
 
-* Klänge und Musik
+* Geräusche und Musik
 
 * Tastatur-, Maus- und Gamepad-Eingabe
 
-* GUI-Schnittstelle für die Entwicklung
+* GUI-Oberfläche für die Entwicklung
 
-<ins>Drittanbieter-Bibliotheken, die derzeit von Goku verwendet werden:</ins>
+* Pixel-Charaktergenerator mit KI
+
+<ins>Drittanbieter-Bibliotheken, die derzeit Goku verwenden:</ins>
 
 * SDL2
 
@@ -47,11 +48,14 @@ Goku ist fokussiert, leichtgewichtig und hat wenige Abhängigkeiten (hauptsächl
 
 * webbrowser
 
-## Anwendung
+## Verwendung
 
 **WICHTIG!!!**
 
-Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* Eine kurze Übersicht befindet sich hier -> [Goku Engine](https://gokuengine.com/)
+* Die Dokumentation befindet sich hier -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* Ein Entwicklungsblog, der unseren Fortschritt, Pläne und neue Funktionen abdeckt, befindet sich hier -> [News](https://gokuengine.com/news)
+* Alle Beispiele befinden sich hier -> [Offizielle Beispiele](https://github.com/ladroid/goku/tree/main/examples)
 
 ## Anforderungen
 ### Linux
@@ -192,6 +196,8 @@ ingabe
 
 * Profiler
 
+* Unterstützung für VSCode
+
 * Unterstützt mehrere Sprachen:
     - Deutsch
     - Spanisch
@@ -213,41 +219,46 @@ ingabe
 
 ## Erstellung für das Web
 
-1. Drücken Sie auf Tools
-2. Drücken Sie auf Build
-3. Führen Sie diesen Befehl im Verzeichnis aus, in dem es erstellt wurde: `cargo web start wasm32-unknown-emscripten` oder `cargo web build --target wasm32-unknown-emscripten`
+1. Werkzeuge drücken
+2. Bauen drücken und Web auswählen
 
-## TODO (ist priorisiert)
+## Wie man den Viewport aktiviert
 
-* schließlich eine separate .rs-Datei anstelle einer großen erstellen
+Um den Viewport zu aktivieren, gehen Sie zu Einstellungen -> Allgemein -> Canvas aktivieren, das gleiche gilt für den Gitteransichtsmodus
 
-* einen Anzeigebereich anstelle der aktuellen Lösung mit Canvas erstellen (wahrscheinlich benötigen Sie ein separates Fenster innerhalb der App mit Kombination von sdl2 und imgui)
+## TODO (priorisiert)
+
+* ~~endlich eine separate .rs-Datei erstellen statt einer großen~~  
+
+* ~~einen Viewport erstellen statt der aktuellen Lösung mit Canvas (wahrscheinlich ein separates Fenster in der App mit Kombination aus sdl2 und OpenGL)~~
+
+* mit wgpu kombinieren ([Beispiel aus der sdl2-Bibliothek](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) und [imgui-Renderer für wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
 
 * Physik verbessern
 
-* UI-System hinzufügen/verbessern (Bild für Schaltflächen hinzufügen ermöglichen)
+* UI-System hinzufügen/verbessern (Bild für Schaltflächen hinzufügen)
 
-* Lichter und Schatten verbessern
+* ~~Lichter und Schatten verbessern~~
 
 * einfache Formen zeichnen (Kreis, Rechteck, Dreieck usw.)
 
-* Tabs
+* ~~Tabs~~
 
-* Profiler verbessern
+* ~~Profiler verbessern~~
 
-* Partikelsystem hinzufügen/verbessern
+* ~~Partikelsystem hinzufügen/verbessern~~
 
-* die GUI des Motors sowie den Texteditor verbessern (wahrscheinlich anstelle des integrierten Texteditors eine Integration mit VSCode oder einer anderen IDE vornehmen)
+* ~~GUI der Engine sowie Texteditor verbessern (wahrscheinlich statt eingebautem Texteditor Integration mit VSCode oder anderem IDE)~~
 
-* Blueprints hinzufügen (wahrscheinlich imgui node graph https://github.com/benmkw/imnodes-rs)
+* Blueprints hinzufügen (wahrscheinlich imgui-Node-Graph https://github.com/benmkw/imnodes-rs)
 
-* Spiele für mobile Geräte iOS, Android erstellen
+* Spiele für Mobilgeräte (iOS, Android) bauen
 
-* Spiele für Konsolen (PS4-5), Xbox, Nintendo Switch erstellen
+* Spiele für Konsolen (PS4-5), Xbox, Nintendo Switch) bauen
 
-* physikalisches Material
+* Physikmaterial
 
-* Integration mit C++ (wahrscheinlich so etwas wie ein bindgen)
+* Integration mit C++ (wahrscheinlich etwas wie ein Bindgen)
 
 ## Beispiele
 
@@ -261,9 +272,9 @@ Ein Beispiel für den Bau eines Roguelike-Prototyps finden Sie hier -> https://g
 
 ### 3. Visuelle Effekte
 
-1. Funken -> einfach eine Funktion verwenden
-2. Feuer -> einfach eine Funktion verwenden
-3. Regen -> einfach eine Funktion verwenden
+1. Funken -> verwenden Sie die Funktion `spawn_particles_sparks` [von hier](src/two_d/particle_system.rs)
+2. Feuer -> verwenden Sie die Funktion `spawn_particles_fires` [von hier](src/two_d/particle_system.rs)
+3. Regen -> verwenden Sie die Funktion `spawn_particles_rain` [von hier](src/two_d/particle_system.rs)
 
 ### 4. Seitlich scrollendes Spiel
 
@@ -271,7 +282,7 @@ Ein Beispiel für den Bau eines seitlich scrollenden Prototyps finden Sie [hier]
 
 ### 5. Platformer
 
-Ein Beispiel für den Bau eines Platformer-Prototyps finden Sie hier -> https://github.com/ladroid
+Beispiel für den Bau eines Side-Scrolling-Prototyps finden Sie [hier](../examples/simple_parallax_example.rs)
 
 ### 6. Einfache Zustände für Feinde festlegen (Verfolgung/Folgen)
 
