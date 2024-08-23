@@ -10,7 +10,7 @@
 ![Repo Size](https://img.shields.io/github/repo-size/ladroid/goku)
 ![License](https://img.shields.io/github/license/ladroid/goku)
 
-[ [Englisch](README.md) | [Deutsch](docs/README.de.md) | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [日本語](docs/README.ja.md) ]
+[ [Englisch](README.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md) | [日本語](README.ja.md) ]
 
 Goku ist eine 2D-Spieleentwicklungsanwendung für Rust (zukünftig mit Integration von 3D-Spielen). Komplett in Rust geschrieben.
 
