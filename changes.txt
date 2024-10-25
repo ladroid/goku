@@ -27,6 +27,7 @@
 26. Modify gui: Sprite goes either in front of or behind another
 27. Modify gui: Enable Grid View
 28. Modify gui: Add Tilemap and fix problems
+29. Modify README
 
 0.1.3 [Star Sprint]
 1. GUI: Move input handler into Preferences and remove unused parts of preferences

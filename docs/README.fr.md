@@ -12,7 +12,6 @@
 
 [ [Anglais](../README.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md) | [日本語](README.ja.md) ]
 
-
 Goku est une application de développement de jeux 2D pour Rust (avec une intégration future pour les jeux 3D). Entièrement écrit en Rust.
 
 Il est disponible pour **macOS**, **Windows** et **Linux**.
@@ -31,7 +30,9 @@ Goku est focalisé, léger et a peu de dépendances (principalement SDL2). Il pr
 
 * une interface graphique pour le développement
 
-<ins>Les bibliothèques tierces actuellement utilisées par goku :</ins>
+* Générateur de caractères en pixel utilisant l'IA
+
+<ins>Les bibliothèques tierces actuellement utilisées par Goku :</ins>
 
 * SDL2
 
@@ -51,7 +52,10 @@ Goku est focalisé, léger et a peu de dépendances (principalement SDL2). Il pr
 
 **IMPORTANT!!!**
 
-La documentation est située ici -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* Un aperçu rapide est disponible ici -> [Goku Engine](https://gokuengine.com/)
+* La documentation est située ici -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* Un blog de développement couvrant nos progrès, plans et nouvelles fonctionnalités est situé ici -> [Actualités](https://gokuengine.com/news)
+* Tous les exemples sont ici -> [Exemples officiels](https://github.com/ladroid/goku/tree/main/examples)
 
 ## Exigences
 ### Linux
@@ -105,16 +109,16 @@ export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
     > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
 
     à (pour Rust 1.6 et supérieur)
-    > C:\Program Files\Rust\\**lib**\rustlib\x86_64-pc-windows-msvc\lib
+    > C:\Program Files\Rust\**lib**\rustlib\x86_64-pc-windows-msvc\lib
 
     ou à (pour les versions de Rust 1.5 et inférieures)
-    > C:\Program Files\Rust\\**bin**\rustlib\x86_64-pc-windows-msvc\lib
+    > C:\Program Files\Rust\**bin**\rustlib\x86_64-pc-windows-msvc\lib
 
     ou dans votre dossier de bibliothèques de choix, et assurez-vous d'avoir une variable d'environnement système de
     > LIB = C:\your\rust\library\folder
 
     Pour les utilisateurs de Rustup, ce dossier sera dans
-    > C:\Users\\{Votre nom d'utilisateur}\\.rustup\toolchains\\{chaîne d'outils actuelle}\lib\rustlib\\{chaîne d'outils actuelle}\lib
+    > C:\Users\{Votre nom d'utilisateur}\.rustup\toolchains\{chaîne d'outils actuelle}\lib\rustlib\{chaîne d'outils actuelle}\lib
 
   Où la chaîne d'outils actuelle est probablement `stable-x86_64-pc-windows-msvc`.
 
@@ -132,6 +136,31 @@ Les bibliothèques de développement MSVC fournies par http://libsdl.org/ n'incl
 - construire une bibliothèque statique SDL2 vous-même et la copier dans le répertoire `lib` de votre chaîne d'outils ; ou
 - également activer la fonction `bundled`, qui construira une bibliothèque statique pour vous ; ou
 - utiliser une bibliothèque SDL2 statique de vcpkg comme décrit ci-dessous.
+
+### Configuration du générateur de caractères en pixel
+Pour la nouvelle fonctionnalité de générateur de caractères en pixel, assurez-vous que Python 3 et PyTorch sont installés. Actuellement, l'IA est écrite en Python, mais il est prévu de la réécrire en Rust en utilisant [tch-rs](https://github.com/LaurentMazare/tch-rs).
+
+#### Comment installer PyTorch
+> pip3 install torch torchvision torchaudio
+
+Pour plus d'informations, consultez [ici](https://pytorch.org/get-started/locally/)
+
+#### Comment configurer PyO3
+PyO3 utilise un script de construction (soutenu par le crate pyo3-build-config) pour déterminer la version de Python et définir les bons arguments de l'éditeur de liens. Par défaut, il tentera d'utiliser ce qui suit dans l'ordre :
+
+* Tout environnement virtuel Python actif.
+* L'exécutable python (s'il s'agit d'un interpréteur Python 3).
+* L'exécutable python3.
+
+Vous pouvez remplacer l'interpréteur Python en définissant la variable d'environnement `PYO3_PYTHON`, par exemple `PYO3_PYTHON=python3.6`, `PYO3_PYTHON=/usr/bin/python3.9`, ou même un interpréteur PyPy `PYO3_PYTHON=pypy3`.
+
+Parfois, PyO3 peut donner une erreur avec la liaison des bibliothèques Python ; dans ce cas, vous pouvez utiliser la variable d'environnement suivante :
+
+Pour Windows :
+> $env:LIB += ";<emplacement_de_la_bibliothèque_python>"
+
+Pour UNIX :
+> export LIB=$LIB:/emplacement_de_la_bibliothèque_python
 
 ## Caractéristiques
 
@@ -170,16 +199,14 @@ Les bibliothèques de développement MSVC fournies par http://libsdl.org/ n'incl
 
 * Types mathématiques :
     * Vector2, Vector3, Vector4
-    * Matrix33, Matrix34
-
-, Matrix43, Matrix44
+    * Matrix33, Matrix34, Matrix43, Matrix44
 
 * Physique :
     * Collisions
     * Corps rigides (actuellement nous n'avons pas de corps rigide cinématique)
 
 * Scène :
-    * Format de fichier JSON flexible : peut décrire soit une scène entière, soit des maillages individuels.
+    * Format de fichier JSON flexible : Peut décrire soit une scène entière, soit des maillages individuels.
 
 * Animation
 
@@ -191,6 +218,8 @@ Les bibliothèques de développement MSVC fournies par http://libsdl.org/ n'incl
 * Système de dialogue
 
 * Profileur
+
+* Prise en charge de VSCode
 
 * Prise en charge de plusieurs langues :
     - Allemand
@@ -206,76 +235,82 @@ Les bibliothèques de développement MSVC fournies par http://libsdl.org/ n'incl
 ## Comment exécuter
 
 1. ```git clone https://github.com/ladroid/goku.git```
-2. extraire tout
-3. commande pour exécuter : `cargo run`
+2. Extraire tout
+3. Commande pour exécuter : `cargo run`
 
-**Important !!!** Actuellement, l'interface utilisateur graphique est toujours en développement, j'essaie de combiner imgui et sdl2 ensemble mais j'ai besoin de temps pour le rendre entièrement compatible. Ainsi, si quelqu'un veut l'utiliser, il est possible d'ajouter le composant `Scene` et d'écrire un script là. Si vous savez comment les combiner, ce serait vraiment génial !
+> **Important !!!**
+> Actuellement, l'interface utilisateur graphique est toujours en développement, j'essaie de combiner imgui et sdl2 ensemble mais j'ai besoin de temps pour le rendre entièrement compatible. Ainsi, si quelqu'un veut l'utiliser, il est possible d'ajouter le composant `Scene` et d'écrire un script là. Si vous savez comment les combiner, ce serait vraiment génial !
 
 ## Comment construire pour le Web
 
 1. Appuyez sur Outils
-2. Appuyez sur Construire
-3. exécutez cette commande dans le répertoire où elle a été construite `cargo web start wasm32-unknown-emscripten` ou `cargo web build --target wasm32-unknown-emscripten`
+2. Appuyez sur Construire et choisissez Web
+
+## Comment activer le Viewport
+
+Pour activer le Viewport, allez dans Préférences -> Général -> Activer la toile de la même manière que pour le mode Vue de grille.
 
 ## À faire (est priorisé)
 
-* enfin faire un fichier .rs séparé au lieu d'un grand
+* ~~créer enfin un fichier .rs séparé au lieu d'un grand~~  
 
-* faire une fenêtre d'affichage au lieu de la solution actuelle avec canvas (probablement besoin d'une fenêtre séparée à l'intérieur de l'application avec combinaison de sdl2 et imgui)
+* ~~créer une fenêtre de visualisation au lieu de la solution actuelle avec la toile (probablement besoin d'une fenêtre séparée dans l'application avec combinaison de sdl2 et OpenGL)~~
+
+* combiner avec wgpu ([Exemple de la bibliothèque sdl2](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs) et [rendu imgui pour wgpu-rs](https://github.com/Yatekii/imgui-wgpu-rs))
 
 * améliorer la physique
 
 * ajouter/améliorer le système d'interface utilisateur (rendre possible l'ajout d'images pour les boutons)
 
-* améliorer les lumières et les ombres
+* ~~améliorer les lumières et les ombres~~
 
 * dessiner des formes simples (cercle, rectangle, triangle, etc.)
 
-* onglets
+* ~~onglets~~
 
-* améliorer le profileur
+* ~~améliorer le profileur~~
 
-* ajouter/améliorer le système de particules
+* ~~ajouter/améliorer le système de particules~~
 
-* améliorer l'interface utilisateur graphique du moteur ainsi que l'éditeur de texte (probablement au lieu de l'éditeur de texte intégré, faire une intégration avec VSCode ou un autre ide)
+* ~~améliorer l'interface utilisateur du moteur ainsi que l'éditeur de texte (probablement au lieu de l'éditeur de texte intégré faire une intégration avec VSCode ou un autre ide)~~
 
 * ajouter des blueprints (probablement imgui node graph https://github.com/benmkw/imnodes-rs)
 
-* construire des jeux pour mobiles iOS, Android
+* créer des jeux pour mobiles iOS, Android
 
-* construire des jeux pour consoles (PS4-5), Xbox, Nintendo Switch
+* créer des jeux pour consoles (PS4-5), Xbox, Nintendo Switch
 
 * matériau physique
 
-* intégration avec C++ (probablement quelque chose comme un bindgen)
+* intégration avec C++ (probablement quelque chose comme bindgen)
 
 ## Exemples
 
 ### 1. Tetris
 
-L'exemple de construction d'un jeu Tetris peut être trouvé [ici](../examples/tetris_game_example.rs)
+L'exemple de construction d'un jeu Tetris peut être trouvé [ici](examples/tetris_game_example.rs)
 
-### 2. Prototype de Roguelike (À FAIRE)
+### 2. Prototype de Roguelike (Prototype)
 
-L'exemple de construction d'un prototype de Roguelike peut être trouvé ici -> https://github.com/ladroid
+L'exemple de construction d'un prototype de roguelike peut être trouvé [ici](examples/roguelike/README_game.md)
 
 ### 3. Effets visuels
 
-1. Étincelles -> utilisez simplement une fonction
-2. Feu -> utilisez simplement une fonction
-3. Pluie -> utilisez simplement une fonction
+1. Étincelles -> utilisez une fonction `spawn_particles_sparks` [d'ici](src/two_d/particle_system.rs)
+2. Feu -> utilisez une fonction `spawn_particles_fires` [d'ici](src/two_d/particle_system.rs)
+3. Pluie -> utilisez une fonction `spawn_particles_rain` [d'ici](src/two_d/particle_system.rs)
 
 ### 4. Jeu à défilement latéral
 
-L'exemple de construction d'un prototype de jeu à défilement latéral peut être trouvé [ici](../examples/simple_parallax_example.rs)
+L'exemple de construction d'un prototype de jeu à défilement latéral peut être trouvé [ici](examples/simple_parallax_example.rs)
 
-### 5. Plate-forme
+### 5. Plateforme
 
-L'exemple de construction d'un prototype de jeu de plate-forme peut être trouvé ici -> https://github.com/ladroid
+L'exemple de construction d'un prototype de jeu de plateforme peut être trouvé [ici](examples/simple_platformer.rs)
 
-### 6. Établir des états simples pour l'ennemi (poursuite/suivi)
+### 6. Définir des états simples pour l'ennemi (poursuite/suivi)
 
-L'exemple de construction d'un prototype de jeu de plate-forme peut être trouvé [ici](../examples/enemy_behaviour.rs)
+L'exemple de construction d'un prototype de jeu de plateforme peut être trouvé [ici](examples/enemy_behaviour.rs)
 
 ## Version japonaise
 

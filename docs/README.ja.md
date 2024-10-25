@@ -12,14 +12,13 @@
 
 [ [English](../README.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md) | [日本語](README.ja.md) ]
 
-
 GokuはRust用の2Dゲーム開発アプリケーションであり（将来的には3Dゲームとの統合が計画されています）、完全にRustで書かれています。
 
 **macOS**、**Windows**、および**Linux**で利用可能です。
 
 現在はSDL2に基づいています。
 
-Gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）です。以下の機能を提供します：
+Gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）です。下記の機能を提供します：
 
 * ウィンドウとメインループ
 
@@ -31,7 +30,9 @@ Gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）で
 
 * 開発のためのGUIインターフェイス
 
-<ins>現在gokuが使用しているサードパーティのライブラリ：</ins>
+* ピクセルキャラクター生成（AI使用）
+
+<ins>現在Gokuが使用しているサードパーティのライブラリ：</ins>
 
 * SDL2
 
@@ -51,7 +52,10 @@ Gokuは集中的で軽量であり、依存関係が少ない（主にSDL2）で
 
 **重要!!!**
 
-ドキュメントはこちらにあります -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* クイック概要はこちら -> [Goku Engine](https://gokuengine.com/)
+* ドキュメントはこちら -> [Gitbook](https://lados-organization.gitbook.io/goku/)
+* 開発の進捗、計画、新しい機能に関するブログはこちら -> [ニュース](https://gokuengine.com/news)
+* すべてのサンプルはこちら -> [公式サンプル](https://github.com/ladroid/goku/tree/main/examples)
 
 ## 要件
 ### Linux
@@ -75,7 +79,7 @@ Cコンパイラ（`gcc`）も必要になるかもしれません。
 `static-link`機能を使用してSDL2を動的にリンクする代わりに静的にリンクすることを選択できます。
 Linuxでは、次のいずれかを追加で行う必要があります：
 * `bundled`機能を使用する
-* rustcがSDL2ライブラリとその依存関係を静的リンクするためのリソースを探す場所を知るために`use-pkgconfig`機能を使用する。これは、システムから静的にSDL2をリンクするために必要なリソースを見つける組み込みの方法がないため必要です
+* rustcがSDL2ライブラリとその依存関係を静的リンクするためのリソースを探す場所を知るために`use-pkgconfig`機能を使用する。これは、システムから静的にSDL2をリンクするために必要なリソースを見つける構築法がないため必要です
 * [vcpkg][vcpkg]を使用して開発ライブラリをインストールする。vcpkgを使用してLinuxおよび他のオペレーティングシステムで静的バイナリを生成する方法に関する指示は[こちら][cargo-vcpkg-usage]にあります
 
 ### macOS
@@ -88,11 +92,11 @@ brew install sdl2
 ```
 
 Homebrewの最近のバージョンでは、インストールされたライブラリは通常`$(brew --prefix)/lib`にリンクされます。
-古いバージョンを実行している場合、SDLのシンボリックリンクは`/usr/local/lib`に存在する可能性があります。
+古いバージョンを使用している場合、SDLのシンボリックリンクは`/usr/local/lib`に存在することがあります。
 
-Homebrewによってインストールされたライブラリのリンクを簡単にするために、それぞれのシェルで以下の手順を行ってください。
+Homebrewでインストールされたライブラリをリンクしやすくするために、以下を使用しているシェルに追加します。
 
-`~/.zshenv`または`~/.bash_profile`にこの行を追加して、ZSHまたはBashを使用しているかどうかに応じています。
+`~/.zshenv`または`~/.bash_profile`に以下の行を追加します（ZSHまたはBashを使用しているかによります）。
 ```
 export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
 ```
@@ -105,16 +109,16 @@ export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
     > SDL2-devel-2.0.x-VC\SDL2-2.0.x\lib\x64\
 
     Rust 1.6以降の場合は
-    > C:\Program Files\Rust\\**lib**\rustlib\x86_64-pc-windows-msvc\lib
+    > C:\Program Files\Rust\**lib**\rustlib\x86_64-pc-windows-msvc\lib
 
     Rustバージョン1.5およびそれ以下の場合は
-    > C:\Program Files\Rust\\**bin**\rustlib\x86_64-pc-windows-msvc\lib
+    > C:\Program Files\Rust\**bin**\rustlib\x86_64-pc-windows-msvc\lib
 
     またはお好きなライブラリフォルダにコピーし、以下のシステム環境変数が存在することを確認します
     > LIB = C:\your\rust\library\folder
 
     Rustupユーザーの場合、このフォルダは
-    > C:\Users\\{Your Username}\\.rustup\toolchains\\{current toolchain}\lib\rustlib\\{current toolchain}\lib
+    > C:\Users\{Your Username}\.rustup\toolchains\{current toolchain}\lib\rustlib\{current toolchain}\lib
 
   現在のツールチェーンはおそらく`stable-x86_64-pc-windows-msvc`です。
 
@@ -123,17 +127,40 @@ export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
 
     からcargoプロジェクトにコピーし、Cargo.tomlのすぐ隣に置きます。
 
-5. ゲームを出荷するときは、SDL2.dllをコンパイルされたexeと同じディレクトリにコピーして、ゲームが起動しないようにします。
+5. ゲームを出荷するときは、SDL2.dllをコンパイルされたexeと同じディレクトリにコピーして、ゲームが起動するようにします。
 
 #### MSVCと静的リンク
 
-http://libsdl.org/ で提供されているMS
-
-VC開発ライブラリには静的ライブラリが含まれていないため、windows-msvcツールチェーンで`static-link`機能を使用する場合、次のいずれかを行う必要があります。
+http://libsdl.org/ で提供されているMSVC開発ライブラリには静的ライブラリが含まれていないため、windows-msvcツールチェーンで`static-link`機能を使用する場合、次のいずれかを行う必要があります。
 
 - SDL2静的ライブラリを自分でビルドし、ツールチェーンの`lib`ディレクトリにコピーする；または
 - `bundled`機能も有効にし、静的ライブラリをビルドする；または
-- 下記のようにvcpkgから静的なSDL2ライブラリを使用する。
+- vcpkgから静的なSDL2ライブラリを使用する。
+
+### ピクセルキャラクター生成の設定
+新しい機能であるピクセルキャラクター生成のために、Python 3およびPyTorchがインストールされていることを確認してください。現在、AIはPythonで書かれていますが、[tch-rs](https://github.com/LaurentMazare/tch-rs)を使用してRustで再実装する計画があります。
+
+#### PyTorchのインストール方法
+> pip3 install torch torchvision torchaudio
+
+詳細については[こちら](https://pytorch.org/get-started/locally/)を参照してください
+
+#### PyO3の設定方法
+PyO3は、Pythonのバージョンを決定し、正しいリンカー引数を設定するためにビルドスクリプト（pyo3-build-configクレートによってバックアップされています）を使用します。デフォルトでは、次の順で使用しようとします：
+
+* アクティブなPython仮想環境
+* `python`実行ファイル（Python 3のインタープリタである場合）
+* `python3`実行ファイル
+
+Pythonインタープリタをオーバーライドするには、環境変数`PYO3_PYTHON`を設定します。例：`PYO3_PYTHON=python3.6`、`PYO3_PYTHON=/usr/bin/python3.9`、またはPyPyインタープリタ`PYO3_PYTHON=pypy3`。
+
+PyO3がPythonライブラリのリンク時にエラーを出す場合、以下の環境変数を使用できます：
+
+Windowsの場合：
+> $env:LIB += ";<python_libの場所>"
+
+UNIXの場合：
+> export LIB=$LIB:/python_libの場所
 
 ## 機能
 
@@ -171,7 +198,7 @@ VC開発ライブラリには静的ライブラリが含まれていないため
     * キーボード、マウス、およびゲームパッドの入力
 
 * 数学型：
-    * Vector2 Vector3、Vector4
+    * Vector2、Vector3、Vector4
     * Matrix33、Matrix34、Matrix43、Matrix44
 
 * 物理：
@@ -192,7 +219,9 @@ VC開発ライブラリには静的ライブラリが含まれていないため
 
 * プロファイラー
 
-* いくつかの言語をサポート：
+* VSCodeサポート
+
+* 複数言語サポート：
     - ドイツ語
     - スペイン語
     - 日本語
@@ -209,43 +238,47 @@ VC開発ライブラリには静的ライブラリが含まれていないため
 2. すべてを抽出
 3. 実行コマンド：`cargo run`
 
-**重要!!!** 現在、GUIはまだ開発中であり、imguiとsdl2を組み合わせることを試していますが、完全に互換性を持たせるには時間がかかります。したがって、それを使用することを希望する人は、コンポーネント`Scene`を追加し、そこにスクリプトを書くことが可能です。それらを組み合わせる方法を知っている場合は、本当に素晴らしいことになります！
+> **重要!!!**
+> 現在、GUIはまだ開発中であり、imguiとsdl2を組み合わせることを試していますが、完全に互換性を持たせるには時間がかかります。したがって、それを使用することを希望する人は、コンポーネント`Scene`を追加し、そこにスクリプトを書くことが可能です。それらを組み合わせる方法を知っている場合は、本当に素晴らしいことになります！
 
 ## Web用にビルドする方法
 
 1. ツールを押します
-2. ビルドを押します
-3. ビルドされたディレクトリでこのコマンドを実行します `cargo web start wasm32-unknown-emscripten` または `cargo web build --target wasm32-unknown-emscripten`
+2. ビルドを押してWebを選択します
+
+## ビューポートを有効にする方法
+
+ビューポートを有効にするには、[設定] -> [全般] -> [キャンバスを有効にする]で設定します。同様にグリッドビューモードも設定できます
 
 ## 今後の課題（優先されています）
 
-* 最終的には1つの大きなものの代わりに別の.rsファイルを作成する
+* ~~最終的には1つの大きなものの代わりに別の.rsファイルを作成する~~
 
-* canvasを使った現在のソリューションの代わりにビューポートを作成する（おそらくアプリ内の別のウィンドウでsdl2とimguiを組み合わせる必要があります）
+* ~~canvasを使った現在のソリューションの代わりにビューポートを作成する（おそらくアプリ内の別のウィンドウでsdl2とOpenGLを組み合わせる必要があります）~~
+
+* wgpuと統合する（[sdl2ライブラリの例](https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/raw-window-handle-with-wgpu/main.rs)および[wgpu-rs用imguiレンダラー](https://github.com/Yatekii/imgui-wgpu-rs)）
 
 * 物理を改善する
 
 * UIシステムを追加/改善する（ボタンに画像を追加することが可能になる）
 
-* ライトとシャドウを改善する
+* ~~ライトとシャドウを改善する~~
 
 * 単純な形状を描画する（円、長方形、三角形など）
 
-* タブ
+* ~~タブ~~
 
-* プロファイラを改善する
+* ~~プロファイラを改善する~~
 
-* パーティクルシステムを追加/改善する
+* ~~パーティクルシステムを追加/改善する~~
 
-* エンジンのGUIおよびテキストエディタを改善する（おそらく組み込みのテキストエディタの代わりにVSCodeまたは他のideとの統合を作成する）
+* ~~エンジンのGUIおよびテキストエディタを改善する（おそらく組み込みのテキストエディタの代わりにVSCodeまたは他のIDEとの統合を作成する）~~
 
-* ブループリントを追加する（おそらくimgui node graph https://github.com/benmkw/imnodes-rs）
+* ブループリントを追加する（おそらくimguiノードグラフ https://github.com/benmkw/imnodes-rs）
 
 * モバイルiOS、Android用のゲームをビルドする
 
-
-
-* コンソール用のゲームをビルドする（PS4-5）、Xbox、Nintendo Switch
+* コンソール用のゲームをビルドする（PS4-5、Xbox、Nintendo Switch）
 
 * 物理マテリアル
 
@@ -255,43 +288,43 @@ VC開発ライブラリには静的ライブラリが含まれていないため
 
 ### 1. テトリス
 
-テトリスゲームをビルドする例は[こちら](examples/tetris_game_example.txt)で見つけることができます
+テトリスゲームをビルドする例は[こちら](examples/tetris_game_example.rs)で見つけることができます
 
-### 2. ローグライクプロトタイプ（TODO）
+### 2. ローグライクプロトタイプ（プロトタイプ）
 
-ローグライクプロトタイプをビルドする例はこちらで見つけることができます -> https://github.com/ladroid
+ローグライクプロトタイプをビルドする例は[こちら](examples/roguelike/README_game.md)で見つけることができます
 
 ### 3. ビジュアルエフェクト
 
-1. スパーク -> 関数を簡単に使用します
-2. 火 -> 関数を簡単に使用します
-3. 雨 -> 関数を簡単に使用します
+1. スパーク -> 関数`spawn_particles_sparks`を使用 [こちら](src/two_d/particle_system.rs)
+2. 火 -> 関数`spawn_particles_fires`を使用 [こちら](src/two_d/particle_system.rs)
+3. 雨 -> 関数`spawn_particles_rain`を使用 [こちら](src/two_d/particle_system.rs)
 
 ### 4. サイドスクロールゲーム
 
-サイドスクロールプロトタイプをビルドする例は[こちら](../examples/simple_parallax_example.rs)で見つけることができます
+サイドスクロールプロトタイプをビルドする例は[こちら](examples/simple_parallax_example.rs)で見つけることができます
 
 ### 5. プラットフォーマー
 
-プラットフォーマープロトタイプをビルドする例はこちらで見つけることができます -> https://github.com/ladroid
+プラットフォーマープロトタイプをビルドする例は[こちら](examples/simple_platformer.rs)で見つけることができます
 
 ### 6. 敵のシンプルな状態を設定する（追跡/追従）
 
-プラットフォーマープロトタイプをビルドする例は[こちら](../examples/enemy_behaviour.rs)で見つけることができます
+プラットフォーマープロトタイプをビルドする例は[こちら](examples/enemy_behaviour.rs)で見つけることができます
 
-## Japanese ver.
+## 日本語版
 
 日本語版は[こちら](https://lados-organization.gitbook.io/goku/v/goku-game-engine_jp/)で見つけることができます
 
-## French ver.
+## フランス語版
 
 フランス語版は[こちら](https://lados-organization.gitbook.io/goku/v/goku-game-engine_fr/)で見つけることができます
 
-## German ver.
+## ドイツ語版
 
 ドイツ語版は[こちら](https://lados-organization.gitbook.io/goku/v/goku-game-engine_de/)で見つけることができます
 
-## Spanish ver.
+## スペイン語版
 
 スペイン語版は[こちら](https://lados-organization.gitbook.io/goku/v/goku-game-engine_es/)で見つけることができます
 
