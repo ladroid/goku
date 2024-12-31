@@ -28,6 +28,7 @@
 27. Modify gui: Enable Grid View
 28. Modify gui: Add Tilemap and fix problems
 29. Modify README
+30. Modify examples, allowing to use them
 
 0.1.3 [Star Sprint]
 1. GUI: Move input handler into Preferences and remove unused parts of preferences

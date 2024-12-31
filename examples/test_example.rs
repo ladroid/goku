@@ -1,6 +1,10 @@
-mod two_d;
+use goku::*;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Set current directory to the root of the project
+    std::env::set_current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+        .expect("Failed to set project root as current directory");
+
     let mut window = two_d::Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
@@ -17,17 +21,17 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let texture_manager2 = two_d::TextureManagerAnim::new(&texture_creator);
 
     let mut player = two_d::GameObject::new(texture_manager, nalgebra::Vector2::new(50, 50));
-    player.load_texture("idle", std::path::Path::new("player_anim.png"), 30, 30, 150, 0)?;
+    player.load_texture("idle", std::path::Path::new("test_assets/player_anim.png"), 30, 30, 150, 0)?;
 
     let mut enemy = two_d::GameObject::new(texture_manager2, nalgebra::Vector2::new(70, 70));
-    enemy.load_texture("idle", std::path::Path::new("player_anim.png"), 30, 30, 150, 0)?;
+    enemy.load_texture("idle", std::path::Path::new("test_assets/player_anim.png"), 30, 30, 150, 0)?;
 
     let mut t1 = two_d::TextureManager::new(&texture_creator);
-    t1.load_texture(&std::path::Path::new("grass.png"))?;
+    t1.load_texture(&std::path::Path::new("test_assets/grass.png"))?;
     let mut t2 = two_d::TextureManager::new(&texture_creator);
-    t2.load_texture(&std::path::Path::new("dirt.png"))?;
+    t2.load_texture(&std::path::Path::new("test_assets/dirt.png"))?;
 
-    let tile_map = two_d::Tile::new(std::path::Path::new("map.txt"), vec![
+    let tile_map = two_d::Tile::new(std::path::Path::new("test_assets/map.txt"), vec![
         &t1, &t2,
         // Add more TextureManager objects for each tile type you want to render
     ], None)?;
@@ -41,7 +45,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
     let mut ui_layer = two_d::Layer::new();
     // Load a font:
-    let font_path = std::path::Path::new("ARIALUNI.TTF");
+    let font_path = std::path::Path::new("test_assets/ARIALUNI.TTF");
     let font_size = 24;
     let font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
     let text_box = std::rc::Rc::new(two_d::TextBox::new("Hello, world".to_lowercase(), font, sdl2::rect::Rect::new(50, 20, 120, 50)));

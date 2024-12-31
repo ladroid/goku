@@ -1,5 +1,5 @@
 extern crate sdl2;
-mod two_d;
+use goku::*;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use rand::Rng;

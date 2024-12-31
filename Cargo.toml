@@ -24,13 +24,16 @@ glow = "0.12.2"
 webbrowser = "0.8.11"
 chrono = "0.4.31"
 copypasta = "0.10.0"
-pyo3 = { version = "0.20.2", features = ["extension-module", "auto-initialize"] }
+pyo3 = { version = "0.20.2", features = [
+    "extension-module",
+    "auto-initialize",
+] }
 image = "0.23.14"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["psapi"] }
 
-[target.'cfg(target_os = "unix")'.dependencies]
+[target.'cfg(target_family = "unix")'.dependencies]
 libc = "0.2"
 
 [dependencies.sdl2]
@@ -43,3 +46,79 @@ git = "https://github.com/bjz/gl-rs"
 
 [build-dependencies]
 embed-resource = "2.4.1"
+
+[[example]]
+name = "roguelike"
+path = "examples/roguelike/game_example.rs"
+
+[[example]]
+name = "ambient_filter"
+path = "examples/ambient_filter.rs"
+
+[[example]]
+name = "behaviour_tree"
+path = "examples/behaviour_tree_implementation.rs"
+
+[[example]]
+name = "character_with_animation"
+path = "examples/character_with_animation.rs"
+
+[[example]]
+name = "dialogue_system"
+path = "examples/dialogue_syste.rs"
+
+[[example]]
+name = "enemy_behaviour"
+path = "examples/enemy_behaviour.rs"
+
+[[example]]
+name = "make_simple_button"
+path = "examples/make_simple_button.rs"
+
+[[example]]
+name = "make_simple_rounded_button"
+path = "examples/make_simple_rounded_button.rs"
+
+[[example]]
+name = "particle_system"
+path = "examples/particle_system.rs"
+
+[[example]]
+name = "playing_audio"
+path = "examples/playing_audio.rs"
+
+[[example]]
+name = "point_light"
+path = "examples/point_light.rs"
+
+[[example]]
+name = "simple_platformer"
+path = "examples/simple_platformer.rs"
+
+[[example]]
+name = "simple_profiler"
+path = "examples/simple_profiler.rs"
+
+[[example]]
+name = "spot_light"
+path = "examples/spot_light.rs"
+
+[[example]]
+name = "stylish_particle_system"
+path = "examples/stylish_particle_system.rs"
+
+[[example]]
+name = "test_example"
+path = "examples/test_example.rs"
+
+[[example]]
+name = "tetris_game_example"
+path = "examples/tetris_game_example.rs"
+
+[[example]]
+name = "simple_raycast"
+path = "examples/simple_raycast.rs"
+
+[[example]]
+name = "simple_parallax_example"
+path = "examples/simple_parallax_example.rs"

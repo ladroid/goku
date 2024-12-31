@@ -1,4 +1,4 @@
-mod two_d;
+use goku::*;
 extern crate sdl2;
 use rand::Rng;
 use sdl2::event::Event;

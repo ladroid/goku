@@ -1,8 +1,8 @@
-mod two_d;
 use rand::Rng;
 use rand::seq::SliceRandom; // For random selection from slices
 #[allow(unused_imports)]
 use sdl2::image::LoadTexture;
+use goku::*;
 
 // Minimap properties
 const MINIMAP_SCALE: f32 = 0.1; // Scale of the minimap compared to the main map
@@ -232,6 +232,10 @@ fn render_minimap(
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Set current directory to the root of the project
+    std::env::set_current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+        .expect("Failed to set project root as current directory");
+
     let mut window = two_d::Window::new("Whispering Depths", 800, 600, false)?;
 
     let texture_creator = window.canvas.texture_creator();
@@ -245,21 +249,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut player = two_d::GameObject::new(texture_manager, nalgebra::Vector2::new(player_grid_position.0 as i32 * TILE_SIZE as i32, player_grid_position.1 as i32 * TILE_SIZE as i32));
 
-    player.load_texture("idle", std::path::Path::new("character_idle_anim.png"), 16, 18, 150, 0)?;
-    player.load_texture("walk_down", std::path::Path::new("character_walk_anim.png"), 16, 18, 150, 0)?;
-    player.load_texture("walk_up", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 1)?;
-    player.load_texture("walk_right", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 2)?;
+    player.load_texture("idle", std::path::Path::new("test_assets/character_idle_anim.png"), 16, 18, 150, 0)?;
+    player.load_texture("walk_down", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 18, 150, 0)?;
+    player.load_texture("walk_up", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 17, 150, 1)?;
+    player.load_texture("walk_right", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 17, 150, 2)?;
     let mut player_health = 100;
     let mut last_player_attacked_time = std::time::Instant::now();
 
     let mut floor = two_d::TextureManager::new(&texture_creator);
-    floor.load_texture(&std::path::Path::new("ground.png"))?;
+    floor.load_texture(&std::path::Path::new("test_assets/ground.png"))?;
     let mut wall = two_d::TextureManager::new(&texture_creator);
-    wall.load_texture(&std::path::Path::new("door.png"))?;
+    wall.load_texture(&std::path::Path::new("test_assets/door.png"))?;
     let mut obstacle = two_d::TextureManager::new(&texture_creator);
-    obstacle.load_texture(&std::path::Path::new("stone.png"))?;
+    obstacle.load_texture(&std::path::Path::new("test_assets/stone.png"))?;
     let mut ladder = two_d::TextureManager::new(&texture_creator);
-    ladder.load_texture(&std::path::Path::new("ladder.png"))?;
+    ladder.load_texture(&std::path::Path::new("test_assets/ladder.png"))?;
 
     let (generated_map, mut spawn_points, mut ladder_position) = generate_level(10, 10, player_grid_position, (1, 8));
     let mut rng = rand::thread_rng();
@@ -270,7 +274,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
             // Load enemy textures here. This should be adapted to your actual texture loading logic.
             // For example:
-            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("enemy_idle.png"), 16, 18, 150, 0)?;
+            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("test_assets/enemy_idle.png"), 16, 18, 150, 0)?;
 
             let enemy = Enemy {
                 position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),
@@ -294,7 +298,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut flip_horizontal = false;
 
-    let mut light_spot_texture = texture_creator.load_texture("point_light.png")?;
+    let mut light_spot_texture = texture_creator.load_texture("test_assets/point_light.png")?;
     let light = two_d::PointLight::new(
         nalgebra::Vector2::new(400.0, 300.0),
         100.0,
@@ -319,7 +323,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
     let mut ui_layer = two_d::Layer::new();
     // Load a font:
-    let font_path = std::path::Path::new("ARIALUNI.TTF");
+    let font_path = std::path::Path::new("test_assets/ARIALUNI.TTF");
     let font_size = 24;
     let font = std::sync::Arc::new(sdl2::ttf::Sdl2TtfContext::load_font(&ttf_context, font_path, font_size)?);
     let text_box = std::rc::Rc::new(two_d::TextBox::new("Play".to_lowercase(), font, sdl2::rect::Rect::new(340, 340, 80, 50)));
@@ -361,7 +365,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui_layer.add_button(quit_button.clone());
 
     let mut audio = two_d::audio::AudioPlayer::new(4);
-    let _music = audio.play(std::path::Path::new("Dragon-Mystery.ogg"), -1, 35);
+    let _music = audio.play(std::path::Path::new("test_assets/Dragon-Mystery.ogg"), -1, 35);
 
     let minimap_rect = sdl2::rect::Rect::new(650, 10, (MINIMAP_WIDTH as f32 * MINIMAP_SCALE) as u32, (MINIMAP_HEIGHT as f32 * MINIMAP_SCALE) as u32);
 
@@ -489,7 +493,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for _ in 0..5 {
                         if let Some(spawn_point) = new_spawn_points.choose(&mut rng).cloned() {
                             let mut enemy_texture_manager = two_d::TextureManagerAnim::new(&texture_creator);
-                            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("enemy_idle.png"), 16, 18, 150, 0)?;
+                            enemy_texture_manager.load_animation("enemy_idle", std::path::Path::new("test_assets/enemy_idle.png"), 16, 18, 150, 0)?;
 
                             let enemy = Enemy {
                                 position: nalgebra::Vector2::new(spawn_point.0 as i32 * TILE_SIZE, spawn_point.1 as i32 * TILE_SIZE),

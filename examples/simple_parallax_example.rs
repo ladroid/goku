@@ -12,9 +12,13 @@ MyGame/
 └── Cargo.toml
 */
 
-mod two_d;
+use goku::*;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Set current directory to the root of the project
+    std::env::set_current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+        .expect("Failed to set project root as current directory");
+    
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -29,9 +33,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // initialize your texture managers
     let mut texture_manager_1 = two_d::TextureManager::new(&texture_creator);
-    texture_manager_1.load_texture(std::path::Path::new("Tall Forest Files/Layers/back.png"))?;
+    texture_manager_1.load_texture(std::path::Path::new("test_assets/back.png"))?;
     let mut texture_manager_2 = two_d::TextureManager::new(&texture_creator);
-    texture_manager_2.load_texture(std::path::Path::new("Tall Forest Files/Layers/far.png"))?;
+    texture_manager_2.load_texture(std::path::Path::new("test_assets/far.png"))?;
     
     // initialize your parallax layers
     let parallax_layer_1 = two_d::ParallaxLayer::new(texture_manager_1, 200.0);

@@ -1,6 +1,10 @@
-mod two_d;
+use goku::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Set current directory to the root of the project
+    std::env::set_current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+        .expect("Failed to set project root as current directory");
+
     let mut window = two_d::Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
@@ -15,19 +19,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut input_handler = two_d::InputHandler::new(&window.sdl_context)?;
 
     let mut player = two_d::GameObject::new(texture_manager, nalgebra::Vector2::new(50, 50));
-    player.load_texture("idle", std::path::Path::new("character_idle_anim.png"), 16, 18, 150, 0)?;
-    player.load_texture("walk_down", std::path::Path::new("character_walk_anim.png"), 16, 18, 150, 0)?;
-    player.load_texture("walk_up", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 1)?;
-    player.load_texture("walk_right", std::path::Path::new("character_walk_anim.png"), 16, 17, 150, 2)?;
+    player.load_texture("idle", std::path::Path::new("test_assets/character_idle_anim.png"), 16, 18, 150, 0)?;
+    player.load_texture("walk_down", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 18, 150, 0)?;
+    player.load_texture("walk_up", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 17, 150, 1)?;
+    player.load_texture("walk_right", std::path::Path::new("test_assets/character_walk_anim.png"), 16, 17, 150, 2)?;
 
     let mut t1 = two_d::TextureManager::new(&texture_creator);
-    t1.load_texture(&std::path::Path::new("NinjaAdventure\\Backgrounds\\Tilesets\\TilesetField_1.png"))?;
+    t1.load_texture(&std::path::Path::new("test_assets/TilesetField_1.png"))?;
     let mut t2 = two_d::TextureManager::new(&texture_creator);
-    t2.load_texture(&std::path::Path::new("NinjaAdventure\\Backgrounds\\Tilesets\\TilesetField_2.png"))?;
+    t2.load_texture(&std::path::Path::new("test_assets/TilesetField_2.png"))?;
     let mut t3 = two_d::TextureManager::new(&texture_creator);
-    t3.load_texture(&std::path::Path::new("NinjaAdventure\\Backgrounds\\Tilesets\\TilesetHouse_1.png"))?;
+    t3.load_texture(&std::path::Path::new("test_assets/TilesetHouse_1.png"))?;
 
-    let tile_map = two_d::Tile::new(std::path::Path::new("map.txt"), vec![
+    let tile_map = two_d::Tile::new(std::path::Path::new("test_assets/map.txt"), vec![
         &t1, &t2, &t3
         // Add more TextureManager objects for each tile type you want to render
     ], None)?;

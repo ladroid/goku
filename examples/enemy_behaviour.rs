@@ -12,9 +12,17 @@ MyGame/
 └── Cargo.toml
 */
 
-mod two_d;
+use goku::two_d::*;
+use nalgebra::Vector2;
+use std::path::Path;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
+    // Set current directory to the root of the project
+    std::env::set_current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+        .expect("Failed to set project root as current directory");
+
     let mut window = Window::new("My Game", 800, 600, false)?;
 
     let last_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
@@ -27,23 +35,25 @@ pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
 
     let texture_manager2 = TextureManagerAnim::new(&texture_creator);
 
+    let mut input_handler = InputHandler::new(&window.sdl_context)?;
+
     let mut player = GameObject::new(texture_manager, Vector2::new(50, 50));
-    player.load_texture(Path::new("player_anim.png"), 30, 30, 150)?;
+    player.load_texture("idle", Path::new("test_assets/player_anim.png"), 30, 30, 150, 0)?;
 
     let mut enemy = GameObject::new(texture_manager2, Vector2::new(70, 70));
-    enemy.load_texture(Path::new("player_anim.png"), 30, 30, 150)?;
+    enemy.load_texture("enemy_idle", Path::new("test_assets/player_anim.png"), 30, 30, 150, 0)?;
 
     let mut t1 = TextureManager::new(&texture_creator);
-    t1.load_texture(&Path::new("NinjaAdventure/Backgrounds/Tilesets/TilesetField_1.png"))?;
+    t1.load_texture(&Path::new("test_assets/TilesetField_1.png"))?;
     let mut t2 = TextureManager::new(&texture_creator);
-    t2.load_texture(&Path::new("NinjaAdventure/Backgrounds/Tilesets/TilesetField_2.png"))?;
+    t2.load_texture(&Path::new("test_assets/TilesetField_2.png"))?;
     let mut t3 = TextureManager::new(&texture_creator);
-    t3.load_texture(&Path::new("NinjaAdventure/Backgrounds/Tilesets/TilesetHouse_1.png"))?;
+    t3.load_texture(&Path::new("test_assets/TilesetHouse_1.png"))?;
 
     let tile_map = Tile::new(Path::new("test_assets/map.txt"), vec![
         &t1, &t2, &t3
         // Add more TextureManager objects for each tile type you want to render
-    ])?;
+    ], None)?;
 
     let mut vec_coll = vec![enemy.collider];
     vec_coll.extend(tile_map.colliders.iter().clone());
@@ -63,19 +73,16 @@ pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
         current_frame_time = unsafe { sdl2::sys::SDL_GetTicks() };
         delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
 
-        for event in window.sdl_context.event_pump()?.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Option::Some(Keycode::Escape),
-                    ..
-                } => break 'mainloop,
-                _ => {
-                    player.update_position(event, &vec_coll, delta_time);
+        for event in input_handler.poll_events() {
+            if let Some(event) = from_sdl_event(event) {
+                match event {
+                    GEvent::Quit | GEvent::KeyDown(KeyEvent::Escape) => break 'mainloop,
+                    _ => {
+                        player.update_position(event, &vec_coll, delta_time);
+                    }
                 }
-            }
-        }  
-
+            }  
+        }
         // Update the camera's position to follow the player
         camera.update(player.get_position());
 
@@ -128,22 +135,44 @@ pub fn test_top_down() -> Result<(), Box<dyn std::error::Error>> {
                 let tile_index = tile_map.tile_map[y][x] as usize;
                 let texture_manager = &tile_map.textures[tile_index];
                 let rect = Rect::new((x * 82) as i32, (y * 82) as i32, 82, 82);
-                let transformed_rect = camera.transform_rect(rect);
-                texture_manager.render_texture(&mut window.canvas, transformed_rect)?;
+                let transformed_rect = camera.transform_rect(&rect);
+                texture_manager.render_texture(&mut window.canvas, transformed_rect.unwrap())?;
             }
         }
 
         // Render the player
-        let player_rect = Rect::new(player.position.x, player.position.y, player.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_width * 2, player.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_height * 2);
-        let transformed_player_rect = camera.transform_rect(player_rect);
-        player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect)?;
+        if let Some(current_animation_tag) = &player.texture_manager_anim.current_animation {
+            if let Some(animated_texture) = player.texture_manager_anim.animations.get(current_animation_tag) {
+                let player_rect = &Rect::new(
+                    player.position.x as i32, 
+                    player.position.y as i32, 
+                    animated_texture.sprite_sheet.frame_width * 2, 
+                    animated_texture.sprite_sheet.frame_height * 2
+                );
+                let transformed_player_rect = camera.transform_rect(player_rect);
+                player.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect.unwrap(), 0)?;
+            }
+        }
 
         // Render the enemy
-        let enemy_rect = Rect::new(enemy.position.x, enemy.position.y, enemy.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_width * 2, enemy.texture_manager_anim.texture.as_ref().unwrap().sprite_sheet.frame_height * 2);
-        let transformed_enemy_rect = camera.transform_rect(enemy_rect);
-        enemy.texture_manager_anim.render_texture(&mut window.canvas, transformed_enemy_rect)?;
+        if let Some(current_animation_tag) = &enemy.texture_manager_anim.current_animation {
+            if let Some(animated_texture) = enemy.texture_manager_anim.animations.get(current_animation_tag) {
+                let player_rect = &Rect::new(
+                    enemy.position.x as i32, 
+                    enemy.position.y as i32, 
+                    animated_texture.sprite_sheet.frame_width * 2, 
+                    animated_texture.sprite_sheet.frame_height * 2
+                );
+                let transformed_player_rect = camera.transform_rect(player_rect);
+                enemy.texture_manager_anim.render_texture(&mut window.canvas, transformed_player_rect.unwrap(), 0)?;
+            }
+        }
 
         window.canvas.present();
     }
     Ok(())
+}
+
+fn main() {
+    test_top_down();
 }

@@ -1,3 +1,8 @@
+use nalgebra::Vector2;
+use sdl2::rect::Rect;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+
 pub struct RigidBody {
     pub velocity: Vector2<f32>,
     pub acceleration: Vector2<f32>,
@@ -322,4 +327,8 @@ pub fn test_tetris() {
         canvas.present();
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60));
     }
+}
+
+fn main() {
+    test_tetris();
 }
